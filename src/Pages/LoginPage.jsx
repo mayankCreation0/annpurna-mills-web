@@ -13,22 +13,23 @@
   ```
 */
 
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { context } from '../Context/Appcontext';
 
 export default function LoginForm() {
     const navigate = useNavigate(); 
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
-    const goToSignup = () => {
-        navigate('/signup');
+    const goToHome = () => {
+        navigate('/home');
     };
-
+    const { fnauthstate } = useContext(context)
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
@@ -41,6 +42,8 @@ export default function LoginForm() {
                 const { name, token } = response.data;
                 Cookies.set('token', token, { expires: 1 }); // Store the token in a cookie
                 toast.success(`Logged in successfully as ${name}`);
+                fnauthstate();
+                goToHome();
                 console.log(name,token)
             } else {
                 toast.error('Invalid username or password');
