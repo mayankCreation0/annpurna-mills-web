@@ -1,0 +1,61 @@
+.highlight-button {
+    position: relative;
+    padding: 20px 40px;
+    font-size: 18px;
+    font-weight: bold;
+    background-color: #FFD700;
+    /* Gold color */
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    overflow: hidden;
+    outline: none;
+    transition: background-color 0.3s, transform 0.3s, box-shadow 0.3s;
+    box-shadow: 0px 8px 20px rgba(255, 255, 255, 0.3), 0px 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.highlight-button span {
+    position: relative;
+    z-index: 1;
+}
+
+.highlight-button .shine,
+.highlight-button .glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0));
+    transition: transform 0.5s ease;
+}
+
+.highlight-button .glow {
+    background: radial-gradient(circle, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.8) 100%);
+    animation: glow-animation 2s infinite alternate;
+}
+
+@keyframes glow-animation {
+    0% {
+        transform: scale(1);
+    }
+
+    100% {
+        transform: scale(1.1);
+    }
+}
+
+.highlight-button:hover {
+    background-color: #FFB90F;
+    /* Change color on hover to a lighter shade */
+    box-shadow: 0px 12px 24px rgba(255, 255, 255, 0.5), 0px 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.highlight-button:hover .shine {
+    transform: translateX(50%);
+}
+
+.highlight-button:active {
+    transform: scale(0.95);
+}

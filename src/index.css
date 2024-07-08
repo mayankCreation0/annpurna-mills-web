@@ -1,16 +1,107 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
-}
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: "Open Sans", sans-serif;
+}
+
+
+::-webkit-scrollbar {
+  width: 3px;
+}
+ 
+
+::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  background-color: #696161;
+}
+ 
+
+
+/* Login Bg */
+
+.XsloginBg{
+  background: none;
+}
+
+
+/* Animation dot */
+
+.dot:before{
+  content:' ';
+  position: absolute;
+  z-index:2;
+  left:0;
+  top:0;
+  width:10px;
+  height:10px; 
+
+  border-radius: 50%;
+}
+
+.dot:after {
+  content:' ';
+  position: absolute;
+  z-index:1;
+  width:10px;
+  height:10px; 
+  background-color: #e60000;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(0,0,0,.3) inset;
+  -webkit-animation-name:'ripple'; 
+  -webkit-animation-duration: 1s; 
+  -webkit-animation-timing-function: ease;  
+  -webkit-animation-delay: 0s; 
+  -webkit-animation-iteration-count: infinite; 
+  -webkit-animation-direction: normal; 
+}
+
+@keyframes ripple {
+   0% {
+    left:5px;
+    top:5px;
+    opcity:75;
+    width:0;
+    height:0;
+  }
+  100% {
+    left:-15px;
+    top:-15px;
+    opacity: 0;
+    width:40px;
+    height:40px;
+  }
+}
+
+
+.active:before{
+  background-color: #00e600;
+}
+
+.active:after{
+  background-color: #00e600;
+}
+
+.completed:before{
+  background-color: #e60000;
+}
+
+.completed:after{
+  background-color: #e60000;
+}
+
+
+
+@media only screen  and (max-width: 900.98px) {
+   
+    .XsloginBg{
+      background-image: url(./Assets/Login_Xs_Bg.jpg);
+      background-repeat: no-repeat;
+      background-position: center;
+      background-attachment: fixed;
+      background-size: cover;
+    }
+}

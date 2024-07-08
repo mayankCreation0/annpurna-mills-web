@@ -1,0 +1,63 @@
+/* Import a stylish and bold font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  position: fixed;
+  top: 0%;
+  left: 0%;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  background-color: black;
+  backdrop-filter: blur(5px);
+}
+
+.loading-content {
+  text-align: left;
+  font-family: 'Bebas Neue', sans-serif;
+  color: #fff;
+}
+
+.title, .subtitle {
+  font-size: 3rem;
+  font-weight: bold;
+  color: #fff;
+  text-transform: uppercase;
+  margin: 0;
+  display: flex;
+  gap: 10px;
+  letter-spacing: .1rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.subtitle {
+  font-size: 2rem;
+  margin-top: 10px;
+}
+
+.word {
+  display: inline-block;
+}
+
+.loading-bar-container {
+  margin-top: 30px;
+  width: 100%;
+  background-color: #333;
+  height: 10px;
+  border: 2px solid #fff;
+  overflow: hidden;
+  position: relative;
+}
+
+.loading-bar {
+  height: 100%;
+  background-color: #fff;
+}
+
+@keyframes loadBar {
+  to {
+    width: 80%;
+  }
+}
