@@ -17,9 +17,9 @@ import { signupApi } from '../Api/Apis'; // Import your signup API function
 
 function Copyright(props) {
     return (
-        <Typography variant="p" {...props} sx={{ color: "applicationTheme.primaryColor_2" }}>
+        <Typography variant="body2" color="text.secondary" align="center" {...props}>
             {'Copyright © '}
-            <Link variant='p' href="https://annpurna-mills.vercel.app/" sx={{ color: "applicationTheme.primaryColor_2", textDecoration: "none" }}>
+            <Link color="inherit" href="https://annpurna-mills.vercel.app/">
                 Annpurna Mills
             </Link>{' '}
             {new Date().getFullYear()}
@@ -38,6 +38,10 @@ export default function SignupPage() {
         setShowPassword(!showPassword);
     };
 
+    const handleMouseDownPassword = (event) => {
+        event.preventDefault();
+    };
+
     const handleSubmitSignup = async (event) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
@@ -51,9 +55,8 @@ export default function SignupPage() {
 
     return (
         <Grid container sx={{ height: '100vh', width: "100%", bgcolor: "applicationTheme.primary" }} spacing={0}>
-          <Grid item display="block" xs={12} md={6} lg={6} xl={7} className={`h-52 min-[900px]:h-auto relative XsloginBg`}>
+            <Grid item display="block" xs={12} md={6} lg={6} xl={7} className={`h-52 min-[900px]:h-auto relative XsloginBg`}>
                 <img src="https://app.svgator.com/assets/svgator.webapp/log-in-girl.svg" alt="" className='h-[100vh] w-full object-fill hidden min-[900px]:block' style={{ background: "radial-gradient(circle, #202047 0, #020917 100%)" }} />
-
                 <img src="https://app.svgator.com/assets/svgator.webapp/log-in-girl.svg" alt="img" style={{ height: 'inherit', width: '100vw', background: "radial-gradient(circle, #202047 0, #020917 100%)" }} className="sm:hidden block" />
             </Grid>
             <Grid item xs={12} md={6} lg={6} xl={5} className='h-auto min-[900px]:h-[100vh]' sx={{ width: "100%", paddingBottom: { xs: '0px', md: '30px' }, bgcolor: "applicationTheme.primary" }}>
@@ -69,7 +72,7 @@ export default function SignupPage() {
                         >
                             <Typography component="h1" variant="h1" sx={{ color: "applicationTheme.secondaryColor_1", mt: 3, mb: 2, textAlign: "left" }}>
                                 Hey
-                                <Typography component="h1" variant="h1" sx={{ color: "applicationTheme.main" }} >
+                                <Typography component="span" variant="h1" sx={{ color: "applicationTheme.main" }} >
                                     there!
                                 </Typography>
                             </Typography>
@@ -111,6 +114,7 @@ export default function SignupPage() {
                                                 <IconButton
                                                     aria-label="toggle password visibility"
                                                     onClick={handleClickShowPassword}
+                                                    onMouseDown={handleMouseDownPassword}
                                                     edge="end"
                                                 >
                                                     {showPassword ? <VisibilityOff sx={{ color: "applicationTheme.primaryColor_2" }} /> : <Visibility sx={{ color: "applicationTheme.primaryColor_2" }} />}
@@ -127,6 +131,9 @@ export default function SignupPage() {
                                     disabled={isLoading}
                                 >
                                     {isLoading ? <CircularProgress size={24} sx={{ color: 'white' }} /> : 'Sign Up'}
+                                </Button>
+                                <Button onClick={() => navigate('/login')} fullWidth>
+                                    Back
                                 </Button>
                             </Box>
                         </Box>
