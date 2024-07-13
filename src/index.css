@@ -98,7 +98,7 @@ body {
 @media only screen  and (max-width: 900.98px) {
    
     .XsloginBg{
-      background-image: url(./Assets/Login_Xs_Bg.jpg);
+      /* background-image: url(./Assets/Login_Xs_Bg.jpg); */
       background-repeat: no-repeat;
       background-position: center;
       background-attachment: fixed;

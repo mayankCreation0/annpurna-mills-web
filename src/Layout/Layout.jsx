@@ -18,7 +18,7 @@ const Layout = () => {
   return (
     <Suspense fallback={<div><Loading /></div>}>
       <Paper component={'section'} sx={{ bgcolor: "applicationTheme.primary", backgroundImage: "none", borderRadius: "0px", boxShadow: "none" }} className='h-screen w-full flex justify-center items-center'>
-        <Box className="h-full container flex flex-col justify-center items-center gap-2 overflow-hidden p-2 bg-transparent">
+        <Box className="h-full container flex flex-col justify-center items-center gap-2 overflow-hidden px-1 py-2 bg-transparent">
           <Navbar />
           {/* Conditionally render GoldSilverRatesComponent */}
           {location.pathname === '/' ? <GoldSilverRatesComponent /> : null}

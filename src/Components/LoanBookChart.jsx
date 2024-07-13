@@ -28,7 +28,12 @@ export default function LoanBookChart() {
             setData({ yearly: yearlyData, monthly: monthlyData });
         }
     }, [analytics]);
-
+    const formatYAxisLabel = (value) => {
+        if (value >= 10000000) return `₹${(value / 10000000).toFixed(1)}Cr`;
+        if (value >= 100000) return `₹${(value / 100000).toFixed(1)}L`;
+        if (value >= 1000) return `₹${(value / 1000).toFixed(1)}K`;
+        return `₹${value}`;
+    };
     if (loading) {
         return <div>Loading...</div>;
     }
@@ -117,15 +122,16 @@ export default function LoanBookChart() {
                                 ...theme.typography.body2,
                                 transform: 'rotate(-45deg)',
                                 textAnchor: 'end',
-                                fontSize:'0.7rem' 
-                            },
+                                fontSize:'0.7rem'                             },
                         }
                     ]}
                     yAxis={[
-                        { labelStyle: theme.typography.body1, tickLabelStyle: theme.typography.body2 }
+                        { labelStyle: theme.typography.body1, tickLabelStyle: theme.typography.body2, valueFormatter: formatYAxisLabel, }
                     ]}
                     series={[
-                        { dataKey: 'amount', color: theme.palette.primary.main }
+                        {
+                            dataKey: 'amount', color: theme.palette.primary.main, valueFormatter: (value) => `₹${value.toLocaleString()}`,
+                            highlightScope: { faded: 'global', highlighted: 'item' }, }
                     ]}
                     height={300}
                     sx={{

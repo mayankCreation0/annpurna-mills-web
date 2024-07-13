@@ -1,7 +1,7 @@
 // src/App.js
 
 import React, { useEffect, useState } from 'react';
-import { Box, Button, Container, Typography } from '@mui/material';
+import { Box, Button, Typography } from '@mui/material';
 import AttendanceForm from '../Components/AttendanceForm';
 import StaffTable from '../Components/StaffTable';
 import { useDispatch } from 'react-redux';
@@ -16,7 +16,7 @@ function StaffAttendance() {
 
   useEffect(() => {
     fetchStaff(dispatch);
-  }, []);
+  }, [dispatch]);
 
   const fetchStaff = async (dispatch) => {
     try {

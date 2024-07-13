@@ -229,3 +229,14 @@ export const updateData = async (formData, dispatch, navigate,id) => {
         dispatch(handleLoading(false));
     }
 }
+
+export const emailCsv = async (dispatch) => {
+    try {
+        const response = await axios.get(`${process.env.REACT_APP_AMS_PROD_URL}user/archive-and-send-email`);
+        dispatch(showToast({ message: 'Email sent successfully', type: 'success' }));
+        return response;
+    } catch (error) {
+        dispatch(showToast({ message: 'Failed to send email', type: 'error' }));
+        throw error; // rethrow the error to handle it in the caller function
+    }
+};

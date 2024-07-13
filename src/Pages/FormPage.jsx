@@ -11,29 +11,35 @@ import {
     CircularProgress,
     InputAdornment,
     Autocomplete,
+    Paper,
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { styled } from '@mui/system';
 import { motion } from 'framer-motion';
 import { postFormData } from '../Api/Apis';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 
-const FormContainer = styled(motion.div)({
-    maxWidth: '90vw',
+const FormContainer = styled(motion.div)(({ theme }) => ({
+    maxWidth: '800px',
     margin: 'auto',
-    padding: '2rem',
-    border: 'none',
-    borderRadius: '8px',
-    boxShadow: "4px 4px 12px -2.5px rgba(85, 166, 246, 0.15),4px 4px 12px -2.5px rgba(85, 166, 246, 0.15),4px 4px 12px -2.5px rgba(85, 166, 246, 0.15), 4px 4px 12px -2.5px rgba(85, 166, 246, 0.15)"
-});
+    padding: theme.spacing(3),
+}));
 
-const FormHeading = styled(Typography)({
-    fontSize: '1.5rem',
-    fontWeight: 'bold',
-    marginBottom: '1rem',
-    textAlign: 'center',
-});
+const FormPaper = styled(Paper)(({ theme }) => ({
+    padding: theme.spacing(3),
+    border: '1px solid #e0e0e0',
+    borderRadius: theme.shape.borderRadius,
+    boxShadow: 'none',
+}));
+
+const FormHeading = styled(Typography)(({ theme }) => ({
+    fontSize: '1.75rem',
+    fontWeight: 500,
+    marginBottom: theme.spacing(3),
+    color: theme.palette.text.primary,
+}));
 
 const FormPage = () => {
     const [formData, setFormData] = useState({
@@ -45,13 +51,13 @@ const FormPage = () => {
         Category: '',
         Weight: '',
         Status: '',
-        Date: new Date().toISOString().substr(0, 10),
+        Date: new Date().toISOString().split('T')[0],
         PhoneNumber: '',
         Remarks: '',
     });
 
     const [paidLoanData, setPaidLoanData] = useState({
-        LoanPaidDate: new Date().toISOString().substr(0, 10),
+        LoanPaidDate: new Date().toISOString().split('T')[0],
         loanPaidAmount: '',
     });
 
@@ -67,13 +73,27 @@ const FormPage = () => {
         }));
     };
 
-
-
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const dataToSubmit = { ...formData };
+        const currentDate = new Date();
+        const submissionDate = new Date(formData.Date);
+        submissionDate.setHours(currentDate.getHours(), currentDate.getMinutes(), currentDate.getSeconds(), currentDate.getMilliseconds());
+
+        const dataToSubmit = {
+            ...formData,
+            Date: submissionDate.toISOString(),
+        };
+
+        console.log("Submit", dataToSubmit);
+
         if (formData.Status === 'Completed') {
-            dataToSubmit.PaidLoan = [paidLoanData];
+            const paidLoanDate = new Date(paidLoanData.LoanPaidDate);
+            paidLoanDate.setHours(currentDate.getHours(), currentDate.getMinutes(), currentDate.getSeconds(), currentDate.getMilliseconds());
+
+            dataToSubmit.PaidLoan = [{
+                ...paidLoanData,
+                LoanPaidDate: paidLoanDate.toISOString(),
+            }];
         }
         await postFormData(dataToSubmit, dispatch, navigate);
     };
@@ -84,37 +104,35 @@ const FormPage = () => {
             [e.target.name]: e.target.value,
         }));
     };
-    const uniqueAddresses = Array.from(new Set(getData.map(item => item.Address).filter(Boolean)));
+
+    const uniqueAddresses = Array.isArray(getData)
+        ? Array.from(new Set(getData.map(item => item.Address?.trim()).filter(Boolean))).sort()
+        : [];
 
     return (
-        <>
-            <FormContainer
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                sx={{ position: 'relative' }}
-            >
-                <FormHeading variant="h6">Add Customers Data</FormHeading>
-                <form component="form" onSubmit={handleSubmit}>
-                    <Grid container spacing={2}>
+        <FormContainer
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+        >
+            <FormPaper elevation={1}>
+                <FormHeading>Customer Data Form</FormHeading>
+                <form onSubmit={handleSubmit}>
+                    <Grid container spacing={3}>
                         <Grid item xs={12} sm={6}>
                             <TextField
                                 name="Name"
                                 label="Name"
-                                variant="outlined"
                                 value={formData.Name}
                                 onChange={handleChange}
                                 fullWidth
                                 required
-                                placeholder="Customer name"
-                                size='small'
                             />
                         </Grid>
                         <Grid item xs={12} sm={6}>
-                            <FormControl fullWidth variant="outlined" size="small">
-                                <InputLabel id="gender-label">Gender</InputLabel>
+                            <FormControl fullWidth>
+                                <InputLabel>Gender</InputLabel>
                                 <Select
-                                    labelId="gender-label"
                                     name="Gender"
                                     value={formData.Gender}
                                     onChange={handleChange}
@@ -126,65 +144,18 @@ const FormPage = () => {
                                 </Select>
                             </FormControl>
                         </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <FormControl fullWidth variant="outlined" size="small">
-                                <InputLabel id="category-label">Category</InputLabel>
-                                <Select
-                                    labelId="category-label"
-                                    name="Category"
-                                    value={formData.Category}
-                                    onChange={handleChange}
-                                    label="Category"
-                                    required
-                                    size='small'
-                                >
-                                    <MenuItem value="Gold">Gold</MenuItem>
-                                    <MenuItem value="Silver">Silver</MenuItem>
-                                    <MenuItem value="Bronze">Bronze</MenuItem>
-                                    {/* <MenuItem value="Bike">Bike</MenuItem>
-                                    <MenuItem value="Cycle">Cycle</MenuItem> */}
-                                    <MenuItem value="Others">Others</MenuItem>
-                                </Select>
-                            </FormControl>
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <FormControl fullWidth variant="outlined" size="small">
-                                <InputLabel id="status-label">Status</InputLabel>
-                                <Select
-                                    labelId="status-label"
-                                    name="Status"
-                                    value={formData.Status}
-                                    onChange={handleChange}
-                                    label="Status"
-                                    required
-                                    size='small'
-                                >
-                                    <MenuItem value="Active">Active</MenuItem>
-                                    <MenuItem value="Completed">Completed</MenuItem>
-                                </Select>
-                            </FormControl>
-                        </Grid>
                         <Grid item xs={12}>
                             <Autocomplete
                                 freeSolo
                                 options={uniqueAddresses}
                                 value={formData.Address}
-                                onChange={(e, newValue) => {
-                                    setFormData(prevData => ({
-                                        ...prevData,
-                                        Address: newValue,
-                                    }));
-                                }}
+                                onChange={(e, newValue) => setFormData(prev => ({ ...prev, Address: newValue }))}
                                 renderInput={(params) => (
                                     <TextField
                                         {...params}
                                         name="Address"
                                         label="Address"
-                                        variant="outlined"
-                                        value={formData.Address}
                                         onChange={handleChange}
-                                        fullWidth
-                                        size='small'
                                     />
                                 )}
                             />
@@ -194,12 +165,10 @@ const FormPage = () => {
                                 type="number"
                                 name="Amount"
                                 label="Amount"
-                                variant="outlined"
                                 value={formData.Amount}
                                 onChange={handleChange}
                                 fullWidth
                                 required
-                                size="small"
                                 InputProps={{
                                     startAdornment: <InputAdornment position="start">₹</InputAdornment>,
                                 }}
@@ -210,28 +179,56 @@ const FormPage = () => {
                                 type="number"
                                 name="Rate"
                                 label="Rate"
-                                variant="outlined"
                                 value={formData.Rate}
                                 onChange={handleChange}
                                 fullWidth
                                 required
-                                size="small"
                                 InputProps={{
                                     endAdornment: <InputAdornment position="end">%</InputAdornment>,
                                 }}
                             />
                         </Grid>
                         <Grid item xs={12} sm={6}>
+                            <FormControl fullWidth>
+                                <InputLabel>Category</InputLabel>
+                                <Select
+                                    name="Category"
+                                    value={formData.Category}
+                                    onChange={handleChange}
+                                    label="Category"
+                                    required
+                                >
+                                    <MenuItem value="Gold">Gold</MenuItem>
+                                    <MenuItem value="Silver">Silver</MenuItem>
+                                    <MenuItem value="Bronze">Kansa</MenuItem>
+                                    <MenuItem value="Others">Others</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <FormControl fullWidth>
+                                <InputLabel>Status</InputLabel>
+                                <Select
+                                    name="Status"
+                                    value={formData.Status}
+                                    onChange={handleChange}
+                                    label="Status"
+                                    required
+                                >
+                                    <MenuItem value="Active">Active</MenuItem>
+                                    <MenuItem value="Completed">Completed</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
                             <TextField
                                 type="number"
                                 name="Weight"
                                 label="Weight"
-                                variant="outlined"
                                 value={formData.Weight}
                                 onChange={handleChange}
                                 fullWidth
                                 required
-                                size="small"
                                 InputProps={{
                                     endAdornment: <InputAdornment position="end">gms</InputAdornment>,
                                 }}
@@ -242,89 +239,86 @@ const FormPage = () => {
                                 type="date"
                                 name="Date"
                                 label="Date"
-                                variant="outlined"
                                 value={formData.Date}
                                 onChange={handleChange}
                                 fullWidth
-                                size='small'
-                                InputLabelProps={{
-                                    shrink: true,
-                                }}
+                                InputLabelProps={{ shrink: true }}
                             />
                         </Grid>
                         <Grid item xs={12}>
                             <TextField
-                                type="number"
                                 name="PhoneNumber"
                                 label="Phone Number"
-                                variant="outlined"
                                 value={formData.PhoneNumber}
                                 onChange={handleChange}
                                 fullWidth
-                                size='small'
                             />
                         </Grid>
                         <Grid item xs={12}>
                             <TextField
                                 name="Remarks"
-                                label="Product detail"
-                                variant="outlined"
+                                label="Product Details"
                                 value={formData.Remarks}
                                 onChange={handleChange}
                                 fullWidth
-                                rows={4}
                                 multiline
-                                size='small'
+                                rows={3}
                             />
                         </Grid>
                         {formData.Status === 'Completed' && (
-                            <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                exit={{ opacity: 0, height: 0 }}
-                                style={{ overflow: 'hidden', width: '100%' }}
-                            >
-                                <Grid container spacing={2}>
-                                    <Grid item xs={12} sm={6}>
-                                        <TextField
-                                            type="date"
-                                            name="LoanPaidDate"
-                                            label="Loan Paid Date"
-                                            variant="outlined"
-                                            value={paidLoanData.LoanPaidDate}
-                                            onChange={handlePaidLoanChange}
-                                            fullWidth
-                                            size='small'
-                                            InputLabelProps={{
-                                                shrink: true,
-                                            }}
-                                        />
-                                    </Grid>
-                                    <Grid item xs={12} sm={6}>
-                                        <TextField
-                                            type="number"
-                                            name="loanPaidAmount"
-                                            label="Loan Paid Amount"
-                                            variant="outlined"
-                                            value={paidLoanData.loanPaidAmount}
-                                            onChange={handlePaidLoanChange}
-                                            fullWidth
-                                            size='small'
-                                        />
-                                    </Grid>
+                            <Grid item xs={12} container spacing={3}>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        type="date"
+                                        name="LoanPaidDate"
+                                        label="Loan Paid Date"
+                                        value={paidLoanData.LoanPaidDate}
+                                        onChange={handlePaidLoanChange}
+                                        fullWidth
+                                        InputLabelProps={{ shrink: true }}
+                                    />
                                 </Grid>
-                            </motion.div>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        type="number"
+                                        name="loanPaidAmount"
+                                        label="Loan Paid Amount"
+                                        value={paidLoanData.loanPaidAmount}
+                                        onChange={handlePaidLoanChange}
+                                        fullWidth
+                                        InputProps={{
+                                            startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                                        }}
+                                    />
+                                </Grid>
+                            </Grid>
                         )}
-                        <Grid item xs={12} display={'flex'} justifyContent="center" alignItems="center" gap={1}>
-                            <Button type="submit" variant="outlined" color="success" size="large">
-                                <SaveIcon />{loading ? <>Submit <CircularProgress size={20} /></> : "Submit"}
-                            </Button>
-                            <Button variant="text" onClick={() => { navigate('/') }}>Back</Button>
+                        <Grid item xs={12} container justifyContent="center" spacing={2}>
+                            <Grid item>
+                                <Button
+                                    type="submit"
+                                    variant="contained"
+                                    color="primary"
+                                    startIcon={<SaveIcon />}
+                                    disabled={loading}
+                                >
+                                    {loading ? <CircularProgress size={24} /> : "Submit"}
+                                </Button>
+                            </Grid>
+                            <Grid item>
+                                <Button
+                                    variant="outlined"
+                                    onClick={() => navigate('/')}
+                                    startIcon={<ArrowBackIcon />}
+                                >
+                                    Back
+                                </Button>
+                            </Grid>
                         </Grid>
                     </Grid>
                 </form>
-            </FormContainer>
-        </>
+            </FormPaper>
+        </FormContainer>
     );
 };
 

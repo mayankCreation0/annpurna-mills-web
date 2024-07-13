@@ -38,6 +38,12 @@ export default function LoanAmountBarChart() {
         const date = new Date(year, month - 1); // JavaScript months are 0-indexed
         return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
     };
+    const formatYAxisLabel = (value) => {
+        if (value >= 10000000) return `₹${(value / 10000000).toFixed(1)}Cr`;
+        if (value >= 100000) return `₹${(value / 100000).toFixed(1)}L`;
+        if (value >= 1000) return `₹${(value / 1000).toFixed(1)}K`;
+        return `₹${value}`;
+    };
 
     const createChartData = (data, type) => {
         if (type === 'yearly') {
@@ -139,12 +145,13 @@ export default function LoanAmountBarChart() {
                         }
                     ]}
                     yAxis={[
-                        { labelStyle: theme.typography.body1, tickLabelStyle: theme.typography.body2 }
+                        { labelStyle: theme.typography.body1, tickLabelStyle: theme.typography.body2, valueFormatter: formatYAxisLabel, }
                     ]}
                     series={[
                         {
                             dataKey: 'amount',
-                            color: theme.palette.primary.main,
+                            color: theme.palette.primary.main, valueFormatter: (value) => `₹${value.toLocaleString()}`,
+                            highlightScope: { faded: 'global', highlighted: 'item' },
                             TooltipComponent: ({ x, y, dataPoint }) => (
                                 <Box sx={{
                                     background: theme.palette.background.paper,

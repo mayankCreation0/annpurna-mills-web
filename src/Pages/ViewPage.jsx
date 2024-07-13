@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Typography, Grid, Box, Stack, Button, TextField, ToggleButtonGroup, ToggleButton, Accordion, AccordionSummary, AccordionDetails, MenuItem, Divider, Modal, Skeleton, Avatar, CircularProgress } from '@mui/material';
+import { Typography, Grid, Box, Stack, Button, TextField, ToggleButtonGroup, IconButton, ToggleButton, Accordion, AccordionSummary, AccordionDetails, MenuItem, Divider, Modal, Skeleton, Avatar, CircularProgress } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { SwipeableButton } from 'react-swipeable-button';
@@ -14,6 +14,7 @@ import MaleIcon from '@mui/icons-material/Male';
 import FemaleIcon from '@mui/icons-material/Female';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
+import CloseIcon from '@mui/icons-material/Close';
 
 const ViewPage = () => {
     const [customer, setCustomer] = useState(null);
@@ -273,8 +274,6 @@ const ViewPage = () => {
                                                 <MenuItem value="Gold">Gold</MenuItem>
                                                 <MenuItem value="Silver">Silver</MenuItem>
                                                 <MenuItem value="Bronze">Kansa</MenuItem>
-                                                <MenuItem value="Bike">Bike</MenuItem>
-                                                <MenuItem value="Cycle">Cycle</MenuItem>
                                                 <MenuItem value="Others">Others</MenuItem>
                                             </TextField>
                                         ) : (
@@ -468,14 +467,24 @@ const ViewPage = () => {
                                             </Typography>
                                         </Box>
                                     ) : (
-                                        <Button
-                                            variant="contained"
-                                            color="secondary"
-                                            onClick={handleModalOpen}
-                                            sx={{ width: '100%' }}
+                                        <Box
+                                            sx={{
+                                                display: 'flex',
+                                                justifyContent: 'center',
+                                                alignItems: 'center',
+                                                width: '100%',
+                                                mt: 2, // Add margin-top for spacing
+                                            }}
                                         >
-                                            Mark as Paid
-                                        </Button>
+                                            <Button
+                                                variant="contained"
+                                                color="secondary"
+                                                onClick={handleModalOpen}
+                                                sx={{ width: 'auto', px: 4, py: 1.5 }}
+                                            >
+                                                Mark as Paid
+                                            </Button>
+                                        </Box>
                                     )}
                                 </Box>
                             </Grid>
@@ -587,7 +596,7 @@ const ViewPage = () => {
                                     </Stack>
                                 </Grid>
                             </Grid>
-                            
+
                         </AccordionDetails>
                     </Accordion>
                 </Grid>
@@ -598,8 +607,14 @@ const ViewPage = () => {
                 aria-labelledby="modal-title"
                 aria-describedby="modal-description"
             >
-                <Box sx={{ ...modalStyle }}>
-                    <Typography id="modal-title" variant="h6" component="h2">
+                <Box sx={modalStyle}>
+                    <IconButton
+                        onClick={handleModalClose}
+                        sx={closeButtonStyle}
+                    >
+                        <CloseIcon />
+                    </IconButton>
+                    <Typography id="modal-title" variant="h6" component="h2" mb={2}>
                         Confirm Payment
                     </Typography>
                     <TextField
@@ -622,6 +637,7 @@ const ViewPage = () => {
                         text='Swipe to confirm payment'
                         color='#4CAF50'
                         onSuccess={handleSwipeSuccess}
+                        style={{ width: '100%', marginTop: '16px' }}
                     />
                 </Box>
             </Modal>
@@ -636,8 +652,18 @@ const modalStyle = {
     transform: 'translate(-50%, -50%)',
     width: 400,
     bgcolor: 'background.paper',
-    border: '2px solid #000',
     boxShadow: 24,
     p: 4,
+    borderRadius: 2,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    position: 'relative',
+};
+
+const closeButtonStyle = {
+    position: 'absolute',
+    top: 25,
+    right: 8,
 };
 export default ViewPage;

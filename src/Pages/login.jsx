@@ -12,7 +12,6 @@ import { loginApi } from '../Api/Apis';
 import { CircularProgress, IconButton, InputAdornment, Stack } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom';
-import Bg_LgImg from '../Assets/Login_Lg_Bg.jpg';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import ThemeToggle from '../Components/ThemeToggle';
 
