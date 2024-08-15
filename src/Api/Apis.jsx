@@ -105,7 +105,14 @@ export const postFormData = async (formData, dispatch, navigate) => {
         const token = Cookies.get('token');
         const headers = {
             Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'  // Add this line
         };
+
+        // Log the FormData contents for debugging
+        for (let pair of formData.entries()) {
+            console.log(pair[0] + ': ' + pair[1]);
+        }
+
         await axios.post(`${API_BASE_URL}user/add`, formData, { headers });
         dispatch(handleLoading(false));
         dispatch(showToast({ message: 'Form data submitted successfully', type: 'success' }));
@@ -114,6 +121,7 @@ export const postFormData = async (formData, dispatch, navigate) => {
         // Refresh data
         await refreshData(dispatch, navigate);
     } catch (error) {
+        console.error('Error submitting form:', error);  // Add this line for debugging
         if (error.response && error.response.status === 400) {
             dispatch(showToast({ message: 'Token expired, Login again', type: 'error' }));
             dispatch(handleAuth(false));
@@ -124,7 +132,6 @@ export const postFormData = async (formData, dispatch, navigate) => {
         dispatch(handleLoading(false));
     }
 }
-
 export const getList = async (dispatch, navigate) => {
     const token = Cookies.get('token');
     try {

@@ -13,6 +13,9 @@ import {
     Autocomplete,
     Paper,
 } from '@mui/material';
+import { IconButton, Box } from '@mui/material';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import SaveIcon from '@mui/icons-material/Save';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { styled } from '@mui/system';
@@ -56,6 +59,9 @@ const FormPage = () => {
         Remarks: '',
     });
 
+    const [imageFile, setImageFile] = useState(null);
+    const [videoFile, setVideoFile] = useState(null);
+
     const [paidLoanData, setPaidLoanData] = useState({
         LoanPaidDate: new Date().toISOString().split('T')[0],
         loanPaidAmount: '',
@@ -75,27 +81,35 @@ const FormPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const formDataToSubmit = new FormData();
+
+        // Append all form fields
+        Object.keys(formData).forEach(key => {
+            formDataToSubmit.append(key, formData[key]);
+        });
+
+        // Append files if they exist
+        if (imageFile) formDataToSubmit.append('image', imageFile);
+        if (videoFile) formDataToSubmit.append('video', videoFile);
+
+        // Handle date
         const currentDate = new Date();
         const submissionDate = new Date(formData.Date);
         submissionDate.setHours(currentDate.getHours(), currentDate.getMinutes(), currentDate.getSeconds(), currentDate.getMilliseconds());
+        formDataToSubmit.set('Date', submissionDate.toISOString());
 
-        const dataToSubmit = {
-            ...formData,
-            Date: submissionDate.toISOString(),
-        };
-
-        console.log("Submit", dataToSubmit);
-
+        // Handle PaidLoan if status is Completed
         if (formData.Status === 'Completed') {
             const paidLoanDate = new Date(paidLoanData.LoanPaidDate);
             paidLoanDate.setHours(currentDate.getHours(), currentDate.getMinutes(), currentDate.getSeconds(), currentDate.getMilliseconds());
 
-            dataToSubmit.PaidLoan = [{
-                ...paidLoanData,
-                LoanPaidDate: paidLoanDate.toISOString(),
-            }];
+            formDataToSubmit.append('PaidLoan[0][LoanPaidDate]', paidLoanDate.toISOString());
+            formDataToSubmit.append('PaidLoan[0][loanPaidAmount]', paidLoanData.loanPaidAmount);
         }
-        await postFormData(dataToSubmit, dispatch, navigate);
+
+        console.log("Submitting form data:", Object.fromEntries(formDataToSubmit));
+
+        await postFormData(formDataToSubmit, dispatch, navigate);
     };
 
     const handlePaidLoanChange = (e) => {
@@ -104,10 +118,35 @@ const FormPage = () => {
             [e.target.name]: e.target.value,
         }));
     };
+    const UploadBox = styled(Box)(({ theme }) => ({
+        border: `2px dashed ${theme.palette.primary.main}`,
+        borderRadius: theme.shape.borderRadius,
+        padding: theme.spacing(2),
+        textAlign: 'center',
+        cursor: 'pointer',
+        '&:hover': {
+            backgroundColor: theme.palette.action.hover,
+        },
+    }));
 
+    const HiddenInput = styled('input')({
+        display: 'none',
+    });
+
+    const handleImageUpload = (event) => {
+        setImageFile(event.target.files[0]);
+    };
+
+    const handleVideoUpload = (event) => {
+        setVideoFile(event.target.files[0]);
+    };
+
+    
     const uniqueAddresses = Array.isArray(getData)
         ? Array.from(new Set(getData.map(item => item.Address?.trim()).filter(Boolean))).sort()
         : [];
+
+
 
     return (
         <FormContainer
@@ -201,6 +240,8 @@ const FormPage = () => {
                                     <MenuItem value="Gold">Gold</MenuItem>
                                     <MenuItem value="Silver">Silver</MenuItem>
                                     <MenuItem value="Bronze">Kansa</MenuItem>
+                                    {/* <MenuItem value="Bike">Bike</MenuItem>
+                                    <MenuItem value="Cycle">Cycle</MenuItem> */}
                                     <MenuItem value="Others">Others</MenuItem>
                                 </Select>
                             </FormControl>
@@ -264,6 +305,42 @@ const FormPage = () => {
                                 multiline
                                 rows={3}
                             />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <UploadBox>
+                                <HiddenInput
+                                    accept="image/*"
+                                    id="image-upload"
+                                    type="file"
+                                    onChange={handleImageUpload}
+                                />
+                                <label htmlFor="image-upload">
+                                    <IconButton component="span" color="primary">
+                                        <CloudUploadIcon />
+                                    </IconButton>
+                                    <Typography variant="body2">
+                                        {imageFile ? imageFile.name : 'Upload Image'}
+                                    </Typography>
+                                </label>
+                            </UploadBox>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <UploadBox>
+                                <HiddenInput
+                                    accept="video/*"
+                                    id="video-upload"
+                                    type="file"
+                                    onChange={handleVideoUpload}
+                                />
+                                <label htmlFor="video-upload">
+                                    <IconButton component="span" color="primary">
+                                        <InsertDriveFileIcon />
+                                    </IconButton>
+                                    <Typography variant="body2">
+                                        {videoFile ? videoFile.name : 'Upload Video'}
+                                    </Typography>
+                                </label>
+                            </UploadBox>
                         </Grid>
                         {formData.Status === 'Completed' && (
                             <Grid item xs={12} container spacing={3}>

@@ -26,7 +26,7 @@ const AllRoutes = ({ mode, toggleColorMode }) => {
    
             <Routes>
                 <Route path='/login' element={<LoginPage />} />
-                <Route path='/signup' element={<SignupPage />} />
+                {/* <Route path='/signup' element={<SignupPage />} /> */}
                 
                 <Route path='/' element={<PrivateRoutes><Layout /></PrivateRoutes>} >
                     <Route path='/staff' element={<PrivateRoutes><StaffAttendance mode={mode} toggleColorMode={toggleColorMode} /></PrivateRoutes>} />

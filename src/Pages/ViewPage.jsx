@@ -1,20 +1,32 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Typography, Grid, Box, Stack, Button, TextField, ToggleButtonGroup, IconButton, ToggleButton, Accordion, AccordionSummary, AccordionDetails, MenuItem, Divider, Modal, Skeleton, Avatar, CircularProgress } from '@mui/material';
+import { Typography, Grid, Box, Stack, Button, TextField, ToggleButtonGroup, IconButton, ToggleButton, Accordion, AccordionSummary, AccordionDetails, MenuItem, Modal, Skeleton, CircularProgress, Avatar } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { SwipeableButton } from 'react-swipeable-button';
 import { getDetailsById, updateData } from '../Api/Apis';
-import MaleImg from '../Assets/Profile/Ava_Male.jpg';
-import FemaleImg from '../Assets/Profile/Ava_Female.jpg';
 import CreateIcon from '@mui/icons-material/Create';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
+import MaleImg from '../Assets/Profile/Ava_Male.jpg';
+import FemaleImg from '../Assets/Profile/Ava_Female.jpg';
 import MaleIcon from '@mui/icons-material/Male';
 import FemaleIcon from '@mui/icons-material/Female';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
+import ImageIcon from '@mui/icons-material/Image';
+import VideoLibraryIcon from '@mui/icons-material/VideoLibrary';
+import { motion } from 'framer-motion';
+import { styled } from '@mui/material/styles';
+
+const StyledAvatar = styled(Avatar)(({ theme }) => ({
+    width: 100,
+    height: 100,
+    border: `4px solid ${theme.palette.background.paper}`,
+    boxShadow: theme.shadows[3],
+}));
+
 
 const ViewPage = () => {
     const [customer, setCustomer] = useState(null);
@@ -33,6 +45,8 @@ const ViewPage = () => {
     const [gender, setGender] = useState('');
     const [previousPayments, setPreviousPayments] = useState([]);
     const [newPayment, setNewPayment] = useState({ PaidAmount: '', PaidDate: '' });
+    const [mediaModalOpen, setMediaModalOpen] = useState(false);
+    const [selectedMedia, setSelectedMedia] = useState(null);
 
     const fetchData = async () => {
         try {
@@ -165,40 +179,12 @@ const ViewPage = () => {
         fetchData();
     }, [id, dispatch]);
 
-    if (!customer) {
-        return <>
-            <Box
-                sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '15px',
-                    backgroundColor: 'white',
-                    borderRadius: '10px',
-                    boxShadow: '0 0 10px rgba(0,0,0,0.1)',
-                    marginBottom: '20px'
-                }}
-            >
-                <Skeleton variant="circular" width={100} height={100} sx={{ marginRight: '20px' }} />
-                <Stack spacing={0.5}>
-                    <Skeleton variant="text" width={150} height={30} />
-                    <Skeleton variant="text" width={100} height={20} />
-                </Stack>
-            </Box>
-            <Box sx={{ width: '100%', maxWidth: 600, m: 'auto' }}>
-                {[1, 2, 3].map((_, index) => (
-                    <Accordion key={index} sx={{ mb: 2 }}>
-                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                            <Skeleton variant="text" width="80%" height={30} />
-                        </AccordionSummary>
-                        <AccordionDetails>
-                            <Skeleton variant="rectangular" width="100%" height={100} />
-                        </AccordionDetails>
-                    </Accordion>
-                ))}
-            </Box>
-        </>
+    const handleMediaClick = (mediaType) => {
+        setSelectedMedia(mediaType);
+        setMediaModalOpen(true);
+    };
 
-    }
+    
 
     const handleUpdate = async () => {
         setIsLoading(true);
@@ -217,22 +203,102 @@ const ViewPage = () => {
         window.location.reload();
     };
 
+    const renderMediaButton = (mediaType, icon) => (
+        <Button
+            variant="outlined"
+            startIcon={icon}
+            onClick={() => handleMediaClick(mediaType)}
+            disabled={!customer.media || !customer.media[mediaType]}
+            sx={{ mr: 1, mb: 1 }}
+        >
+            View {mediaType}
+        </Button>
+    );
+
+    const renderMedia = () => {
+        if (!selectedMedia || !customer.media || !customer.media[selectedMedia]) return null;
+
+        const media = customer.media[selectedMedia];
+
+        if (selectedMedia === 'image') {
+            return (
+                <img
+                    src={media.url}
+                    alt="Customer"
+                    style={{
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        objectFit: 'contain',
+                        display: 'block'
+                    }}
+                />
+            );
+        } else if (selectedMedia === 'video') {
+            return (
+                <video
+                    controls
+                    style={{
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        objectFit: 'contain',
+                        display: 'block'
+                    }}
+                >
+                    <source src={media.url} type={`video/${media.format}`} />
+                    Your browser does not support the video tag.
+                </video>
+            );
+        }
+    };
+
+    if (!customer) {
+        return (
+            <Box sx={{ padding: '20px', width: '100%', maxWidth: '1200px', margin: 'auto', backgroundColor: '#f7f9fc' }}>
+                <Skeleton variant="rectangular" width="100%" height={200} sx={{ mb: 2, borderRadius: '10px' }} />
+                <Grid container spacing={3}>
+                    <Grid item xs={12} md={6}>
+                        <Skeleton variant="rectangular" width="100%" height={400} sx={{ borderRadius: '10px' }} />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                        <Skeleton variant="rectangular" width="100%" height={400} sx={{ borderRadius: '10px' }} />
+                    </Grid>
+                </Grid>
+            </Box>
+        );
+    }
+
+
     return (
         <Box sx={{ padding: '20px', width: '100%', maxWidth: '1200px', margin: 'auto', backgroundColor: '#f7f9fc' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', padding: '15px', backgroundColor: 'white', borderRadius: '10px', boxShadow: '0 0 10px rgba(0,0,0,0.1)', marginBottom: '20px' }}>
-                <img src={customer.Gender !== 'male' ? FemaleImg : MaleImg} alt='Profile' style={{ borderRadius: '50%', width: '100px', height: '100px', marginRight: '20px' }} />
-                <Stack spacing={0.5}>
-                    <Typography variant="h5" sx={{ fontWeight: '600', textTransform: 'capitalize' }}>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+                <Box sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    padding: '30px',
+                    backgroundColor: 'white',
+                    borderRadius: '10px',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                    marginBottom: '30px'
+                }}>
+                    <StyledAvatar src={customer.Gender === 'male' ? MaleImg : FemaleImg} />
+                    <Typography variant="h4" sx={{ fontWeight: '600', textTransform: 'capitalize', mt: 2, mb: 1 }}>
                         {customer.Name}
                     </Typography>
-                    <Typography variant="body1" sx={{ color: mode === 'light' ? 'black' : 'white', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <Box component={'span'} sx={{ position: 'relative', width: '13px', height: '7px' }}>
-                            <Box component={'span'} className={`dot ${customer.Status.toLowerCase()}`} />
-                        </Box>
-                        {customer.Status}
-                    </Typography>
-                </Stack>
-            </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                        <Typography variant="body1" sx={{ color: mode === 'light' ? 'black' : 'white', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <Box component={'span'} sx={{ position: 'relative', width: '13px', height: '7px' }}>
+                                <Box component={'span'} className={`dot ${customer.Status.toLowerCase()}`} />
+                            </Box>
+                            {customer.Status}
+                        </Typography>
+                    </Box>
+                    <Box>
+                        {renderMediaButton('image', <ImageIcon />)}
+                        {renderMediaButton('video', <VideoLibraryIcon />)}
+                    </Box>
+                </Box>
+            </motion.div>
 
             <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
@@ -274,6 +340,8 @@ const ViewPage = () => {
                                                 <MenuItem value="Gold">Gold</MenuItem>
                                                 <MenuItem value="Silver">Silver</MenuItem>
                                                 <MenuItem value="Bronze">Kansa</MenuItem>
+                                                <MenuItem value="Bike">Bike</MenuItem>
+                                                <MenuItem value="Cycle">Cycle</MenuItem>
                                                 <MenuItem value="Others">Others</MenuItem>
                                             </TextField>
                                         ) : (
@@ -601,6 +669,61 @@ const ViewPage = () => {
                     </Accordion>
                 </Grid>
             </Grid>
+
+            {/* Media Modal */}
+            <Modal
+                open={mediaModalOpen}
+                onClose={() => setMediaModalOpen(false)}
+                aria-labelledby="media-modal-title"
+            >
+                <Box sx={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    bgcolor: 'rgba(0, 0, 0, 0.9)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1300
+                }}>
+                    <Box sx={{
+                        position: 'relative',
+                        maxWidth: '90%',
+                        maxHeight: '90%',
+                        overflow: 'hidden',
+                        borderRadius: 2,
+                        boxShadow: 24,
+                    }}>
+                        <IconButton
+                            onClick={() => setMediaModalOpen(false)}
+                            sx={{
+                                position: 'absolute',
+                                right: 8,
+                                top: 8,
+                                color: 'white',
+                                bgcolor: 'rgba(0, 0, 0, 0.5)',
+                                '&:hover': {
+                                    bgcolor: 'rgba(0, 0, 0, 0.7)'
+                                }
+                            }}
+                        >
+                            <CloseIcon />
+                        </IconButton>
+                        <Box sx={{
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}>
+                            {renderMedia()}
+                        </Box>
+                    </Box>
+                </Box>
+            </Modal>
+
             <Modal
                 open={isModalOpen}
                 onClose={handleModalClose}
