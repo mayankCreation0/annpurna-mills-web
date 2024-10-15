@@ -15,7 +15,8 @@ import {
   TextField,
   InputAdornment,
   Box,
-  Button, Modal,
+  Button,
+  Modal,
   Skeleton
 } from '@mui/material';
 import {
@@ -55,6 +56,7 @@ export default function CustomerList() {
   const [filterValue, setFilterValue] = useState('');
   const [searchValue, setSearchValue] = useState('');
   const [selectedId, setSelectedId] = useState(null);
+  const [selectedLoanId, setSelectedLoanId] = useState(null);
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const theme = useTheme();
@@ -65,27 +67,46 @@ export default function CustomerList() {
   const [pin, setPin] = useState('');
   const listData = useSelector((state) => state.getData);
 
-
   const [placeholder, setPlaceholder] = useState('');
   const [isTyping, setIsTyping] = useState(true);
   const text = 'Search_name';
-  const typingSpeed = 150; // Adjust typing speed in ms
-  const deletionSpeed = 100; // Adjust deletion speed in ms
-  const pauseDuration = 1000; // Pause duration in ms before retyping
-  const PIN_EXPORT_CSV = process.env.REACT_APP_PIN_EXPORT_CSV; // Change this to the actual PIN you want to use
+  const typingSpeed = 150;
+  const deletionSpeed = 100;
+  const pauseDuration = 1000;
+  const PIN_EXPORT_CSV = process.env.REACT_APP_PIN_EXPORT_CSV;
 
-
-
-  const handleDelete = (id) => {
-    setSelectedId(id);
+  const handleDelete = (customerId) => {
+    setSelectedId(customerId);
     setOpen(true);
   };
 
   const handleConfirm = async () => {
     setOpen(false);
     setLoaderOpen(true);
-    await deleteData(selectedId, dispatch, navigate);
-    setLoaderOpen(false);
+
+    // Optimistically update the UI
+    const updatedCustomers = customers.filter(customer => customer.customerId !== selectedId);
+    const updatedFilteredCustomers = filteredCustomers.filter(customer => customer.customerId !== selectedId);
+
+    setCustomers(updatedCustomers);
+    setFilteredCustomers(updatedFilteredCustomers);
+
+    try {
+      // Call the delete API
+      await deleteData(selectedId, dispatch, navigate);
+
+      // If successful, no need to do anything else as we've already updated the UI
+    } catch (error) {
+      console.error('Error deleting customer:', error);
+      // If there's an error, revert the changes
+      setCustomers(customers);
+      setFilteredCustomers(filteredCustomers);
+      // Show an error message to the user
+      // You might want to use a snackbar or toast for this
+      alert('Failed to delete customer. Please try again.');
+    } finally {
+      setLoaderOpen(false);
+    }
   };
 
   const handleChangePage = (event, newPage) => {
@@ -95,6 +116,10 @@ export default function CustomerList() {
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(+event.target.value);
     setPage(0);
+  };
+
+  const capitalizeName = (name) => {
+    return name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
   };
 
   const handleSort = (columnId) => {
@@ -180,18 +205,10 @@ export default function CustomerList() {
     }
   };
 
-  const handleView = (id) => {
-    navigate(`/view/${id}`);
+  const handleView = (customerId) => {
+    console.log("ids", customerId)
+    navigate(`/view/${customerId}`);
   };
-
-  // const handleSearch = () => {
-  //   const lowercasedFilter = searchValue.toLowerCase();
-  //   const filteredData = customers.filter((item) =>
-  //     item.Name.toLowerCase().includes(lowercasedFilter)
-  //   );
-  //   setFilteredCustomers(filteredData);
-  //   setPage(0);
-  // };
 
   const TableSkeleton = ({ rows, columns }) => {
     return (
@@ -232,7 +249,6 @@ export default function CustomerList() {
     setError(null);
 
     try {
-      // Use your redux dispatch here
       const response = await emailCsv(dispatch);
       console.log(response);
     } catch (error) {
@@ -240,10 +256,9 @@ export default function CustomerList() {
       setError(error.message);
     } finally {
       setIsLoading(false);
-      handleCloseModal(); // Close the modal after sending email
+      handleCloseModal();
     }
   };
-
 
   useEffect(() => {
     let typingTimeout;
@@ -274,6 +289,15 @@ export default function CustomerList() {
     return () => clearTimeout(typingTimeout);
   }, [placeholder, isTyping]);
 
+  const formatCategories = (loans) => {
+    const categoryCounts = {};
+    loans.forEach(loan => {
+      categoryCounts[loan.Category] = (categoryCounts[loan.Category] || 0) + 1;
+    });
+    return Object.entries(categoryCounts)
+      .map(([category, count]) => `${category}(${count})`)
+      .join(', ');
+  };
 
   useEffect(() => {
     async function fetchData() {
@@ -285,8 +309,48 @@ export default function CustomerList() {
     if (!Object.keys(listData).length > 0) {
       fetchData();
     } else {
-      setCustomers(listData);
-      setFilteredCustomers(listData);
+      const consolidatedCustomers = listData.map(customer => {
+        if (!customer.Loans || customer.Loans.length === 0) {
+          return {
+            customerId: customer._id,
+            customerName: capitalizeName(customer.Name),
+            customerAddress: customer.Address,
+            customerGender: customer.Gender,
+            customerPhoneNumber: customer.PhoneNumber,
+            Date: null,
+            Category: 'N/A',
+            Status: 'No Loans',
+            Amount: 0,
+            loanCount: 0,
+            Loans: []
+          };
+        }
+
+        const totalAmount = customer.Loans.reduce((sum, loan) => sum + (loan && loan.Amount || 0), 0);
+        const activeLoans = customer.Loans.filter(loan => loan && loan.Status === 'Active');
+        const latestLoan = customer.Loans.reduce((latest, current) => {
+          if (!current || !current.Date) return latest;
+          if (!latest || !latest.Date) return current;
+          return new Date(current.Date) > new Date(latest.Date) ? current : latest;
+        }, null);
+
+        return {
+          customerId: customer._id,
+          customerName: capitalizeName(customer.Name),
+          customerAddress: customer.Address,
+          customerGender: customer.Gender,
+          customerPhoneNumber: customer.PhoneNumber,
+          Date: latestLoan ? latestLoan.Date : null,
+          Category: formatCategories(customer.Loans.filter(loan => loan != null)),
+          Status: activeLoans.length > 0 ? 'Active' : 'Completed',
+          Amount: totalAmount,
+          loanCount: customer.Loans.filter(loan => loan != null).length,
+          Loans: customer.Loans.filter(loan => loan != null)
+        };
+      });
+
+      setCustomers(consolidatedCustomers);
+      setFilteredCustomers(consolidatedCustomers);
     }
   }, [listData, dispatch, navigate]);
 
@@ -294,12 +358,12 @@ export default function CustomerList() {
     let filteredData = customers;
 
     if (filterValue) {
-      filteredData = filteredData.filter((item) => item.Category === filterValue);
+      filteredData = filteredData.filter((item) => item.Category.includes(filterValue));
     }
 
     if (searchValue) {
       filteredData = filteredData.filter((item) =>
-        item.Name.toLowerCase().includes(searchValue.toLowerCase())
+        item.customerName && item.customerName.toLowerCase().includes(searchValue.toLowerCase())
       );
     }
 
@@ -318,7 +382,20 @@ export default function CustomerList() {
 
   return (
     <>
-      <Paper sx={{ paddingTop: '10px', overflowx: 'hidden', bgcolor: "applicationTheme.primary", height: '95%', display: 'flex', flexDirection: 'column', justifyContent: 'start', alignItems: 'start', gap: "10px", boxShadow: 'none', backgroundImage: "none", borderRadius: "0px", overflow: 'hidden' }}>
+      <Paper sx={{
+        paddingTop: '10px',
+        overflowX: 'hidden',
+        bgcolor: "applicationTheme.primary",
+        height: { xs: 'calc(100vh - 100px)', md: '100%' },
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'start',
+        alignItems: 'start',
+        boxShadow: 'none',
+        backgroundImage: "none",
+        borderRadius: "0px",
+        overflow: 'hidden'
+      }}>
         <Box
           sx={{
             display: 'flex',
@@ -328,19 +405,16 @@ export default function CustomerList() {
             width: '100%',
             backgroundColor: 'applicationTheme.primary',
             height: 'fit-content',
+            mb: '10px'
           }}
         >
           <TextField
-            // label="Search Name"
             variant="outlined"
-
             onChange={(e) => { setSearchValue(e.target.value); setPage(0); }}
             value={searchValue}
             placeholder={placeholder}
             sx={{
               width: isMediumScreen ? '250px' : '100%',
-              // marginRight: '1rem',
-
               '.MuiOutlinedInput-root': {
                 height: isMediumScreen ? '2.5rem' : '3rem',
                 borderRadius: isMediumScreen ? '30px' : '10px',
@@ -348,13 +422,11 @@ export default function CustomerList() {
               '.MuiInputLabel-outlined': {
                 transform: 'translate(14px, 10px) scale(1)',
               },
-
               "& input::placeholder": {
                 fontSize: "15px",
                 color: theme.palette.mode === 'light' ? "#333333" : '#b6b6b6',
                 opacity: .9,
               },
-
               "& .MuiOutlinedInput-root": {
                 color: theme.palette.mode === 'light' ? "#333333" : '#b6b6b6',
                 "& .MuiOutlinedInput-notchedOutline": {
@@ -362,10 +434,8 @@ export default function CustomerList() {
                   borderWidth: "1px",
                 },
               }
-
             }}
             InputProps={{
-
               endAdornment: (
                 <InputAdornment position="end">
                   <SearchIcon />
@@ -378,7 +448,7 @@ export default function CustomerList() {
               variant="outlined"
               value={filterValue}
               onChange={(e) => {
-                setFilterValue(e.target.value); // Ensure state is updated correctly
+                setFilterValue(e.target.value);
                 setPage(0);
               }}
               IconComponent={FilterList}
@@ -420,7 +490,7 @@ export default function CustomerList() {
           ) : (
             <Select
               variant="outlined"
-              value=""// Ensure value is set here too
+              value=""
               onChange={(e) => setFilterValue(e.target.value)}
               IconComponent={FilterList}
               displayEmpty
@@ -449,7 +519,7 @@ export default function CustomerList() {
                   transform: 'translate(14px, 10px) scale(1)',
                 },
                 '.MuiSelect-selectMenu': {
-                  display: 'none', // Hide selected value on small screens
+                  display: 'none',
                 },
               }}
             >
@@ -495,17 +565,26 @@ export default function CustomerList() {
             sx={{
               border: 'none',
               backgroundColor: 'applicationTheme.primary',
-              overflowX: 'auto',
+              flex: 1,
+              overflowY: 'auto',
+              width: '100%',
               scrollBehavior: 'smooth',
-              height: '100%',
               '&::-webkit-scrollbar': {
                 display: 'none',
               },
-              '-ms-overflow-style': 'none', /* IE and Edge */
-              'scrollbar-width': 'none', /* Firefox */
+              '-ms-overflow-style': 'none',
+              'scrollbar-width': 'none',
             }}
           >
-            <Table stickyHeader aria-label="sticky table">
+            <Table stickyHeader aria-label="sticky table" sx={{
+              overflowX: 'auto',
+              scrollBehavior: 'smooth',
+              '&::-webkit-scrollbar': {
+                display: 'none',
+              },
+              '-ms-overflow-style': 'none',
+              'scrollbar-width': 'none',
+            }}>
               <TableHead>
                 <TableRow>
                   {columns.map((column, index, array) => (
@@ -547,121 +626,128 @@ export default function CustomerList() {
               {loaderOpen ? (
                 <TableSkeleton rows={10} columns={columns.length} />
               ) : (
-                <TableBody>
-                  {Array.isArray(filteredCustomers) && filteredCustomers.length > 0 ? (
-                    filteredCustomers
-                      .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                      .map((customer, index, array) => (
-                        <TableRow
-                          key={index}
-                          sx={{
-                            '&:hover': {
-                              backgroundColor: '#f5f5f5',
-                              transition: 'background-color 0.3s ease',
-                            },
-                            '&:last-child td, &:last-child th': {
-                              borderBottom: 0,
-                            },
-                          }}
-                        >
-                          {columns.map((column) => (
-                            <TableCell
-                              key={column.id}
-                              onClick={() => handleView(customer._id)}
-                              className={`sample-customer ${customer && '!w-52'}`}
-                              sx={{
-                                fontSize: '0.875rem',
-                                fontWeight: '600',
-                                backgroundColor: 'transparent',
-                                color: 'applicationTheme.secondaryColor_1',
-                                padding: "10px 5px",
-                                cursor: 'pointer',
-                                borderBottom: index + 1 >= array.length ? 'none' : '1px solid #ddd',
-                                transition: 'color 0.3s ease, background-color 0.3s ease',
-                                '&:hover': {
-                                  color: '#333',
-                                },
-                              }}
-                              align={column.align || 'left'}
-                            >
-                              {column.id === '_id'
-                                ? customer._id.slice(-6)
-                                : column.id === 'Date'
-                                  ? new Date(customer.Date).toLocaleDateString('en-IN')
-                                  : column.id === 'Name' ? (
-                                    <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-                                      <div style={{ display: 'inline-block', alignItems: 'center', width: "150px", whiteSpace: "nowrap", textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                                        {customer.Name}
+                  <TableBody>
+                    {Array.isArray(filteredCustomers) && filteredCustomers.length > 0 ? (
+                      filteredCustomers
+                        .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                        .map((customer, index, array) => (
+                          <TableRow
+                            key={`${customer.customerId}-${customer.loanId}`}
+                            sx={{
+                              '&:hover': {
+                                backgroundColor: '#f5f5f5',
+                                transition: 'background-color 0.3s ease',
+                              },
+                              '&:last-child td, &:last-child th': {
+                                borderBottom: 0,
+                              },
+                            }}
+                          >
+                            {columns.map((column) => (
+                              <TableCell
+                                key={column.id}
+                                onClick={() => handleView(customer.customerId)}
+                                className={`sample-customer ${customer && '!w-52'}`}
+                                sx={{
+                                  fontSize: '0.875rem',
+                                  fontWeight: '600',
+                                  backgroundColor: 'transparent',
+                                  color: 'applicationTheme.secondaryColor_1',
+                                  padding: "10px 5px",
+                                  cursor: 'pointer',
+                                  borderBottom: index + 1 >= array.length ? 'none' : '1px solid #ddd',
+                                  transition: 'color 0.3s ease, background-color 0.3s ease',
+                                  '&:hover': {
+                                    color: '#333',
+                                  },
+                                }}
+                                align={column.align || 'left'}
+                              >
+                                {column.id === '_id'
+                                  ? customer.customerId.slice(-6)
+                                  : column.id === 'Date'
+                                    ? customer.Date ? new Date(customer.Date).toLocaleDateString('en-IN') : 'N/A'
+                                    : column.id === 'Name' ? (
+                                      <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                                        <div style={{ display: 'inline-block', alignItems: 'center', width: "150px", whiteSpace: "nowrap", textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                                          {customer.customerName}
+                                        </div>
+                                        {customer.Status === 'Active' && customer.Date && (
+                                          <div style={{ display: 'flex', alignItems: 'center', marginTop: '4px' }}>
+                                            <div
+                                              style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                backgroundColor: calculateTenure(customer.Date).backgroundColor,
+                                                borderRadius: '8px',
+                                                padding: '2px 4px',
+                                                marginRight: '8px',
+                                              }}
+                                            >
+                                              <AccessTimeIcon style={{ marginRight: '4px', color: '#757575', fontSize: '1rem' }} />
+                                              <span
+                                                style={{
+                                                  color: calculateTenure(customer.Date).color,
+                                                  fontWeight: '500',
+                                                  fontSize: '0.75rem',
+                                                }}
+                                              >
+                                                {getShortTenureText(calculateTenure(customer.Date).text)}
+                                              </span>
+                                            </div>
+                                            <span style={{ fontSize: '0.75rem', color: '#757575' }}>
+                                              {customer.loanCount} loan{customer.loanCount !== 1 ? 's' : ''}
+                                            </span>
+                                          </div>
+                                        )}
                                       </div>
-                                      {customer.Status === 'Active' && <div
+                                    ) : column.id === 'Status' ? (
+                                      <span
                                         style={{
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          backgroundColor: calculateTenure(customer.Date).backgroundColor,
-                                          borderRadius: '8px',
-                                          padding: '2px 4px',
-                                          marginTop: '4px',
-                                          width: "70px"
-                                        }}
-                                      >
-                                        <AccessTimeIcon style={{ marginRight: '4px', color: '#757575', fontSize: '1rem' }} />
-                                        <span
-                                          style={{
-                                            color: calculateTenure(customer.Date).color,
-                                            fontWeight: '500',
-                                            fontSize: '0.75rem',
-                                          }}
-                                        >
-                                          {getShortTenureText(calculateTenure(customer.Date).text)}
-                                        </span>
-                                      </div>}
-                                    </div>
-                                  ) : column.id === 'Status' ? (
-                                    <span
-                                      style={{
-                                        color: 'white',
-                                        backgroundColor:
-                                          customer.Status === 'Active'
-                                            ? '#4CAF50'
-                                            : customer.Status === 'Renew'
-                                              ? '#2196F3'
+                                          color: 'white',
+                                          backgroundColor:
+                                            customer.Status === 'Active'
+                                              ? '#4CAF50'
                                               : customer.Status === 'Completed'
                                                 ? '#F44336'
-                                                : 'inherit',
-                                        padding: '2px 6px',
-                                        borderRadius: '12px',
-                                        fontSize: '0.75rem',
-                                        display: 'inline-block',
-                                      }}
-                                    >
-                                      {customer.Status}
-                                    </span>
-                                  ) : column.id === 'Amount' ? (<span>₹{customer.Amount}</span>) : column.id === 'actions' ? (
-                                    <motion.div
-                                      whileHover={{ scale: 1.1 }}
-                                      whileTap={{ scale: 0.9 }}
-                                      style={{ display: 'flex', justifyContent: 'left', gap: '8px' }}
-                                    >
-                                      <IconButton
-                                        color="error"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleDelete(customer._id);
+                                                : '#9E9E9E', // For 'No Loans' status
+                                          padding: '2px 6px',
+                                          borderRadius: '12px',
+                                          fontSize: '0.75rem',
+                                          display: 'inline-block',
                                         }}
-                                        style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#f8d7da', padding: '4px 8px', borderRadius: '4px' }}
                                       >
-                                        <DeleteIcon sx={{ fontSize: '1rem' }} />
-                                        <Typography variant="body2">Delete</Typography>
-                                      </IconButton>
-                                    </motion.div>
-                                  ) : (
-                                    customer[column.id]
-                                  )}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      ))
-                  ) : (
+                                        {customer.Status}
+                                      </span>
+                                    ) : column.id === 'Amount' ? (<span>₹{customer.Amount}</span>)
+                                      : column.id === 'Address' ? customer.customerAddress
+                                        : column.id === 'Category' ? customer.Category
+                                          : column.id === 'actions' ? (
+                                            <motion.div
+                                              whileHover={{ scale: 1.1 }}
+                                              whileTap={{ scale: 0.9 }}
+                                              style={{ display: 'flex', justifyContent: 'left', gap: '8px' }}
+                                            >
+                                              <IconButton
+                                                color="error"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleDelete(customer.customerId);
+                                                }}
+                                                style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#f8d7da', padding: '4px 8px', borderRadius: '4px' }}
+                                              >
+                                                <DeleteIcon sx={{ fontSize: '1rem' }} />
+                                                <Typography variant="body2">Delete</Typography>
+                                              </IconButton>
+                                            </motion.div>
+                                          ) : (
+                                            customer[column.id]
+                                          )}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))
+                    ) : (
                     <TableRow>
                       <TableCell colSpan={columns.length} align="center" sx={{ height: '40vh' }}>
                         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', width: '100%' }}>
@@ -678,7 +764,18 @@ export default function CustomerList() {
               )}
             </Table>
           </TableContainer>
-          <Box sx={{ display: 'flex', flexDirection: 'row', backgroundColor: 'applicationTheme.primary', justifyContent: isMediumScreen ? 'flex-end' : 'center', alignItems: 'center', height: 'fit-content', width: "100%" }}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'row',
+              backgroundColor: 'applicationTheme.primary',
+              borderTop: '1px solid #ddd',
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              width: "100%",
+              height: '48px',
+            }}
+          >
             <TablePagination
               rowsPerPageOptions={[10, 25, 100]}
               component="div"
@@ -687,19 +784,34 @@ export default function CustomerList() {
               page={page}
               onPageChange={handleChangePage}
               onRowsPerPageChange={handleChangeRowsPerPage}
-              sx={{ xs: 'flex', justifyContent: 'flex-end', backgroundColor: 'applicationTheme.primary', fontSize: '0.75rem', padding: '0px', overflow: 'hidden', paddingX: '0px' }}
-            />
-            <TransitionsModal
-              open={open}
-              handleClose={() => setOpen(false)}
-              handleConfirm={handleConfirm}
+              sx={{
+                '.MuiTablePagination-toolbar': {
+                  minHeight: '48px',
+                  paddingLeft: '8px',
+                  paddingRight: '8px',
+                },
+                '.MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows': {
+                  margin: 0,
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                },
+                '.MuiTablePagination-select': {
+                  paddingTop: '4px',
+                  paddingBottom: '4px',
+                },
+              }}
             />
           </Box>
         </>
       </Paper>
+      <TransitionsModal
+        open={open}
+        handleClose={() => setOpen(false)}
+        handleConfirm={handleConfirm}
+      />
     </>
   );
 }
+
 const modalStyle = {
   position: 'absolute',
   top: '50%',

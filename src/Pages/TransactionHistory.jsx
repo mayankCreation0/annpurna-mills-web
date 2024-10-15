@@ -35,6 +35,7 @@ const TransactionHistory = () => {
     if (!Object.keys(listData).length > 0) {
       fetchData();
     } else {
+      console.log('listData:', listData); // Debug log
       setTransactions(listData);
     }
   }, [listData, dispatch, navigate]);
@@ -52,83 +53,79 @@ const TransactionHistory = () => {
     }
   };
 
-  const groupByMonth = (transactions) => {
-    const allTransactions = transactions.flatMap(transaction => {
-      const transactionEntries = [];
-  
-      if (transaction.Status === 'Active') {
-        if (transaction.Amount !== null) {
-          transactionEntries.push({
-            ...transaction,
-            type: 'loan',
-            Date: transaction.Date,
-            Amount: transaction.Amount || 0
-          });
-        }
-  
-        transaction.PreviousPayments.forEach(payment => {
-          transactionEntries.push({
-            ...transaction,
-            type: 'payment',
-            Date: payment.PaidDate,
-            Amount: payment.Amount || 0
-          });
-        });
-      }
-  
-      if (transaction.Status === 'Completed') {
-        if (transaction.Amount !== null) {
-          transactionEntries.push({
-            ...transaction,
-            type: 'loan',
-            Date: transaction.Date,
-            Amount: transaction.Amount || 0
-          });
-        }
-  
-        transaction.PreviousPayments.forEach(payment => {
-          transactionEntries.push({
-            ...transaction,
-            type: 'payment',
-            Date: payment.PaidDate,
-            Amount: payment.Amount || 0
-          });
-        });
-  
-        transaction.PaidLoan.forEach(paidLoan => {
-          transactionEntries.push({
-            ...transaction,
-            type: 'completed',
-            Date: paidLoan.LoanPaidDate,
-            Amount: paidLoan.loanPaidAmount || 0
-          });
-        });
-      }
-  
-      return transactionEntries;
+  const formatAmount = (amount) => {
+    return amount.toLocaleString('en-IN', {
+      maximumFractionDigits: 0,
+      style: 'currency',
+      currency: 'INR'
     });
-  
-    // Sort all transactions by date in descending order
+  };
+
+  const groupByMonth = (transactions) => {
+    console.log('Grouping transactions:', transactions); // Debug log
+    const allTransactions = transactions.flatMap(customer => {
+      return customer.Loans.flatMap(loan => {
+        const loanEntries = [];
+
+        // Add loan entry
+        loanEntries.push({
+          customerId: customer._id,
+          customerName: customer.Name,
+          ...loan,
+          type: 'loan',
+          Date: loan.Date,
+          Amount: loan.Amount || 0
+        });
+
+        // Add previous payment entries
+        if (loan.PreviousPayments && Array.isArray(loan.PreviousPayments)) {
+          loan.PreviousPayments.forEach(payment => {
+            loanEntries.push({
+              customerId: customer._id,
+              customerName: customer.Name,
+              ...loan,
+              type: 'payment',
+              Date: payment.PaidDate,
+              Amount: payment.PaidAmount || 0
+            });
+          });
+        }
+
+        // Add completed loan entry if applicable
+        if (loan.Status === 'Completed' && loan.PaidLoan) {
+          loanEntries.push({
+            customerId: customer._id,
+            customerName: customer.Name,
+            ...loan,
+            type: 'completed',
+            Date: loan.PaidLoan.LoanPaidDate,
+            Amount: loan.PaidLoan.loanPaidAmount || 0
+          });
+        }
+
+        return loanEntries;
+      });
+    });
+
     allTransactions.sort((a, b) => moment(b.Date).valueOf() - moment(a.Date).valueOf());
-  
-    return allTransactions.reduce((acc, transaction) => {
+
+    const grouped = allTransactions.reduce((acc, transaction) => {
       const month = moment(transaction.Date).format('MMMM YYYY');
       if (!acc[month]) acc[month] = [];
       acc[month].push(transaction);
       return acc;
     }, {});
+
+    console.log('Grouped transactions:', grouped); // Debug log
+    return grouped;
   };
-  
 
   const calculateMonthlyNet = (transactions) => {
     return transactions.reduce((net, transaction) => {
       if (transaction.type === 'loan') {
         net -= transaction.Amount;
       }
-      if (transaction.type === 'completed') {
-        net += transaction.Amount;
-      }
-      if (transaction.type === 'payment') {
+      if (transaction.type === 'completed' || transaction.type === 'payment') {
         net += transaction.Amount;
       }
       return net;
@@ -137,13 +134,17 @@ const TransactionHistory = () => {
 
   const groupedTransactions = groupByMonth(transactions);
 
+  const handleTransactionClick = (customerId) => {
+    navigate(`/view/${customerId}`);
+  };
+
   const renderTransaction = (transaction) => {
     const type = transaction.type;
     const iconColor = type === 'loan' ? theme.palette.error.main : type === 'completed' ? theme.palette.success.main : theme.palette.info.main;
 
     return (
       <ListItem
-        key={transaction._id + transaction.Date}
+        key={`${transaction.customerId}-${transaction._id}-${transaction.Date}`}
         sx={{
           border: `1px solid ${theme.palette.divider}`,
           borderRadius: '8px',
@@ -152,16 +153,18 @@ const TransactionHistory = () => {
           transition: 'background-color 0.3s, color 0.3s',
           '&:hover': {
             backgroundColor: theme.palette.action.hover,
+            cursor: 'pointer',
           }
         }}
         component={motion.div}
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.3 }}
+        onClick={() => handleTransactionClick(transaction.customerId)}
       >
         <ListItemIcon sx={{ color: iconColor }}>{getIcon(type)}</ListItemIcon>
         <ListItemText
-          primary={`${transaction.Name} - ₹${transaction.Amount}`}
+          primary={`${transaction.customerName} - ${formatAmount(transaction.Amount)}`}
           secondary={moment(transaction.Date).format('MMMM Do YYYY, h:mm:ss a')}
           primaryTypographyProps={{ fontWeight: 'bold' }}
           secondaryTypographyProps={{ fontSize: '0.9em', color: theme.palette.text.secondary }}
@@ -170,6 +173,8 @@ const TransactionHistory = () => {
     );
   };
 
+  console.log('Rendering with groupedTransactions:', groupedTransactions); // Debug log
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" sx={{ mb: 3 }}>
@@ -177,9 +182,7 @@ const TransactionHistory = () => {
       </Typography>
       {loading ? (
         <Box>
-          {/* Skeleton for Month Header */}
           <Skeleton height={40} width="60%" sx={{ mb: 2 }} />
-          {/* Skeleton for Transaction Items */}
           <List>
             {[...Array(5)].map((_, index) => (
               <ListItem key={index} sx={{ mb: 2 }}>
@@ -195,22 +198,26 @@ const TransactionHistory = () => {
           </List>
         </Box>
       ) : (
-        Object.keys(groupedTransactions).map(month => (
-          <Box key={month}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography variant="h6" sx={{ mt: 3, mb: 1, fontWeight: 'bold', color: theme.palette.primary.main }}>
-                {month}
-              </Typography>
-              <Typography variant="subtitle1" sx={{ mt: 3, mb: 1, fontWeight: 'bold', color: calculateMonthlyNet(groupedTransactions[month]) >= 0 ? theme.palette.success.main : theme.palette.error.main }}>
-                Net: ₹{calculateMonthlyNet(groupedTransactions[month])}
-              </Typography>
+        Object.keys(groupedTransactions).length > 0 ? (
+          Object.keys(groupedTransactions).map(month => (
+            <Box key={month}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="h6" sx={{ mt: 3, mb: 1, fontWeight: 'bold', color: theme.palette.primary.main }}>
+                  {month}
+                </Typography>
+                <Typography variant="subtitle1" sx={{ mt: 3, mb: 1, fontWeight: 'bold', color: calculateMonthlyNet(groupedTransactions[month]) >= 0 ? theme.palette.success.main : theme.palette.error.main }}>
+                  Net: {formatAmount(calculateMonthlyNet(groupedTransactions[month]))}
+                </Typography>
+              </Box>
+              <Divider sx={{ mb: 2 }} />
+              <List>
+                {groupedTransactions[month].map(transaction => renderTransaction(transaction))}
+              </List>
             </Box>
-            <Divider sx={{ mb: 2 }} />
-            <List>
-              {groupedTransactions[month].map(transaction => renderTransaction(transaction))}
-            </List>
-          </Box>
-        ))
+          ))
+        ) : (
+          <Typography>No transactions to display.</Typography>
+        )
       )}
     </Box>
   );

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { getAnalytics } from '../Api/Apis';
+import { getAnalytics, getList } from '../Api/Apis';
 import { Box } from '@mui/material';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
@@ -12,8 +12,8 @@ import LoanAmountBarChart from '../Components/RepaidChart';
 import Statistics from '../Components/Statistics';
 import Chart from '../Components/CountCharts';
 import { useNavigate } from 'react-router-dom';
-import Skeleton from '@mui/material/Skeleton';
 import PieChart from '../Components/PieChart';
+import Loading from '../Components/Loading';
 
 function Copyright(props) {
   return (
@@ -37,73 +37,12 @@ const Home = () => {
   React.useEffect(() => {
     const fetchData = async () => {
       await getAnalytics(dispatch, navigate);
+      await getList(dispatch, navigate);
     };
     if (Object.keys(storeData).length <= 0) {
       fetchData();
     }
-  }, [dispatch, navigate, storeData]);
-
-  const renderSkeletons = () => (
-    <Box sx={{ display: 'flex', bgcolor: "applicationTheme.primary" }}>
-      <Container maxWidth="lg" sx={{ paddingLeft: "5px", paddingRight: "5px" }}>
-        <Grid container spacing={3} justifyContent="center">
-          <Grid item xs={12}>
-            {/* Skeleton for Statistics */}
-            <Paper
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                padding: 2,
-                minHeight: '120px', // Ensure a minimum height to match the Statistics card
-              }}
-            >
-              <Skeleton variant="text" width="30%" sx={{ mb: 2 }} />
-              <Skeleton variant="rectangular" height={80} />
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={8} lg={9}>
-            {/* Skeleton for Count Chart */}
-            <Paper
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                height: '300px',
-                width: '100%',
-                margin: '0 auto',
-              }}
-            >
-              <Skeleton variant="rectangular" height={300} />
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={8} lg={9}>
-            {/* Skeleton for Loan Amount Bar Chart */}
-            <Paper
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                height: '300px',
-              }}
-            >
-              <Skeleton variant="rectangular" height={300} />
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={8} lg={9}>
-            {/* Skeleton for Loan Book Chart */}
-            <Paper
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                height: '300px',
-              }}
-            >
-              <Skeleton variant="rectangular" height={300} />
-            </Paper>
-          </Grid>
-        </Grid>
-        <Copyright sx={{ pt: 4 }} />
-      </Container>
-    </Box>
-  );
+  }, [dispatch, navigate, storeData, getData]);
   
 
   return (
@@ -152,7 +91,7 @@ const Home = () => {
               </Grid>
 
               {Array.isArray(getData) || getData.length === 0 ? <Grid item xs={12} md={8} lg={9}>
-                <Paper
+                <Box
                   sx={{
                     display: 'flex',
                     flexDirection: 'column',
@@ -163,15 +102,15 @@ const Home = () => {
                   }}
                 >
                   <PieChart />
-                </Paper>
+                </Box>
               </Grid> : null}
 
 
             </Grid>
-            <Copyright sx={{ pt: 4 }} />
+            <Copyright display="flex" style={{ margin: "auto", justifyContent: "center", marginBottom: '20px' }} />
           </Container>
         </Box>
-      ) : renderSkeletons()}
+      ) : <Loading/>} 
     </div>
   );
 };

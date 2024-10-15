@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
-  TextField, Select, MenuItem, FormControl, InputLabel, Button, Grid, Typography, Paper, useTheme, CircularProgress
+  TextField, Select, MenuItem, FormControl, InputLabel, Button, Grid, Typography, Paper, useTheme, CircularProgress,
+  Box
 } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
 import { postAttendance } from '../Api/AttendanceApis';
@@ -35,28 +36,22 @@ const AttendanceForm = () => {
     setRemark('');
   };
 
-  return (
-    <Paper
-      sx={{
-        padding: '16px',
-        border: '1px solid',
-        borderColor: theme.palette.mode === 'light' ? '#ccc' : theme.palette.divider,
-        backgroundColor: theme.palette.background.paper,
-      }}
-    >
-      <Typography variant="h6" gutterBottom>
+return (
+    <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
+      <Typography variant="h6" gutterBottom fontWeight="bold" color="primary">
         Add/Edit Attendance
       </Typography>
       <form onSubmit={handleSubmit}>
-        <Grid container spacing={3}>
+        <Grid container spacing={2}>
           <Grid item xs={12}>
-            <FormControl fullWidth>
+            <FormControl fullWidth size="small">
               <InputLabel id="staff-label">Staff</InputLabel>
               <Select
                 labelId="staff-label"
                 value={selectedStaff}
                 onChange={(e) => setSelectedStaff(e.target.value)}
                 required
+                label="Staff"
               >
                 {staffList.map((staff) => (
                   <MenuItem key={staff._id} value={staff._id}>
@@ -69,6 +64,7 @@ const AttendanceForm = () => {
           <Grid item xs={12}>
             <TextField
               fullWidth
+              size="small"
               type="date"
               label="Date"
               InputLabelProps={{ shrink: true }}
@@ -78,13 +74,14 @@ const AttendanceForm = () => {
             />
           </Grid>
           <Grid item xs={12}>
-            <FormControl fullWidth>
+            <FormControl fullWidth size="small">
               <InputLabel id="status-label">Status</InputLabel>
               <Select
                 labelId="status-label"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
                 required
+                label="Status"
               >
                 <MenuItem value="present">Present</MenuItem>
                 <MenuItem value="half day">Half Day</MenuItem>
@@ -95,6 +92,7 @@ const AttendanceForm = () => {
           <Grid item xs={12}>
             <TextField
               fullWidth
+              size="small"
               label="Wages"
               type="number"
               value={moneyTaken}
@@ -108,32 +106,36 @@ const AttendanceForm = () => {
           <Grid item xs={12}>
             <TextField
               fullWidth
+              size="small"
               label="Remark"
               multiline
-              rows={4}
+              rows={3}
               value={remark}
               onChange={(e) => setRemark(e.target.value)}
             />
           </Grid>
           <Grid item xs={12}>
-            <Button
-              type="submit"
-              variant="contained"
-              sx={{
-                backgroundColor: theme.palette.applicationTheme.main,
-                '&:hover': {
-                  backgroundColor: theme.palette.applicationTheme.secondaryColor_1,
-                },
-              }}
-              disabled={loading}
-            >
-              {loading ? <CircularProgress size={24} color="inherit" /> : 'Submit'}
-            </Button>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button
+                type="submit"
+                variant="contained"
+                sx={{
+                  backgroundColor: theme.palette.primary.main,
+                  '&:hover': {
+                    backgroundColor: theme.palette.primary.dark,
+                  },
+                }}
+                disabled={loading}
+              >
+                {loading ? <CircularProgress size={24} color="inherit" /> : 'Submit'}
+              </Button>
+            </Box>
           </Grid>
         </Grid>
       </form>
     </Paper>
   );
 };
+
 
 export default AttendanceForm;

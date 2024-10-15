@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     TextField,
     Button,
@@ -23,6 +23,8 @@ import { motion } from 'framer-motion';
 import { postFormData } from '../Api/Apis';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import { AddAPhoto, VideoCall } from '@mui/icons-material';
+import { useLocation } from 'react-router-dom';
 
 const FormContainer = styled(motion.div)(({ theme }) => ({
     maxWidth: '800px',
@@ -53,12 +55,12 @@ const FormPage = () => {
         Rate: '',
         Category: '',
         Weight: '',
-        Status: '',
+        Status: 'Active', // Default status set to Active
         Date: new Date().toISOString().split('T')[0],
         PhoneNumber: '',
         Remarks: '',
     });
-
+    const location = useLocation();
     const [imageFile, setImageFile] = useState(null);
     const [videoFile, setVideoFile] = useState(null);
 
@@ -76,9 +78,10 @@ const FormPage = () => {
         setFormData((prevData) => ({
             ...prevData,
             [e.target.name]: e.target.value,
+            ...(e.target.name === 'Category' && ['Bike', 'Cycle'].includes(e.target.value) ? { Weight: '' } : {}),    
         }));
     };
-
+    const showWeightField = !['Bike', 'Cycle'].includes(formData.Category);
     const handleSubmit = async (e) => {
         e.preventDefault();
         const formDataToSubmit = new FormData();
@@ -132,7 +135,19 @@ const FormPage = () => {
     const HiddenInput = styled('input')({
         display: 'none',
     });
-
+    useEffect(() => {
+        if (location.state && location.state.customerData) {
+            const { customerData } = location.state;
+            setFormData(prevData => ({
+                ...prevData,
+                Name: customerData.Name || '',
+                Gender: customerData.Gender || '',
+                Address: customerData.Address || '',
+                PhoneNumber: customerData.PhoneNumber || '',
+                // Don't pre-fill loan-specific fields like Amount, Rate, Category, etc.
+            }));
+        }
+    }, [location]);
     const handleImageUpload = (event) => {
         setImageFile(event.target.files[0]);
     };
@@ -141,12 +156,9 @@ const FormPage = () => {
         setVideoFile(event.target.files[0]);
     };
 
-    
     const uniqueAddresses = Array.isArray(getData)
-        ? Array.from(new Set(getData.map(item => item.Address?.trim()).filter(Boolean))).sort()
+        ? Array.from(new Set(getData.map(item => item.Address?.toLowerCase().trim()).filter(Boolean))).sort()
         : [];
-
-
 
     return (
         <FormContainer
@@ -155,7 +167,9 @@ const FormPage = () => {
             exit={{ opacity: 0 }}
         >
             <FormPaper elevation={1}>
-                <FormHeading>Customer Data Form</FormHeading>
+                <FormHeading>
+                    {location.state && location.state.customerData ? 'New Loan for Existing Customer' : 'Customer Data Form'}
+                </FormHeading>
                 <form onSubmit={handleSubmit}>
                     <Grid container spacing={3}>
                         <Grid item xs={12} sm={6}>
@@ -184,6 +198,15 @@ const FormPage = () => {
                             </FormControl>
                         </Grid>
                         <Grid item xs={12}>
+                            <TextField
+                                name="PhoneNumber"
+                                label="Phone Number"
+                                value={formData.PhoneNumber}
+                                onChange={handleChange}
+                                fullWidth
+                            />
+                        </Grid>
+                        <Grid item xs={12}>
                             <Autocomplete
                                 freeSolo
                                 options={uniqueAddresses}
@@ -194,7 +217,13 @@ const FormPage = () => {
                                         {...params}
                                         name="Address"
                                         label="Address"
-                                        onChange={handleChange}
+                                        value={formData.Address}
+                                        onChange={(e) => handleChange({
+                                            target: {
+                                                name: e.target.name,
+                                                value: e.target.value.toLowerCase(),
+                                            }
+                                        })}
                                     />
                                 )}
                             />
@@ -240,8 +269,8 @@ const FormPage = () => {
                                     <MenuItem value="Gold">Gold</MenuItem>
                                     <MenuItem value="Silver">Silver</MenuItem>
                                     <MenuItem value="Bronze">Kansa</MenuItem>
-                                    {/* <MenuItem value="Bike">Bike</MenuItem>
-                                    <MenuItem value="Cycle">Cycle</MenuItem> */}
+                                    <MenuItem value="Bike">Bike</MenuItem>
+                                    <MenuItem value="Cycle">Cycle</MenuItem>
                                     <MenuItem value="Others">Others</MenuItem>
                                 </Select>
                             </FormControl>
@@ -261,20 +290,22 @@ const FormPage = () => {
                                 </Select>
                             </FormControl>
                         </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                type="number"
-                                name="Weight"
-                                label="Weight"
-                                value={formData.Weight}
-                                onChange={handleChange}
-                                fullWidth
-                                required
-                                InputProps={{
-                                    endAdornment: <InputAdornment position="end">gms</InputAdornment>,
-                                }}
-                            />
-                        </Grid>
+                        {showWeightField && (
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    type="number"
+                                    name="Weight"
+                                    label="Weight"
+                                    value={formData.Weight}
+                                    onChange={handleChange}
+                                    fullWidth
+                                    required
+                                    InputProps={{
+                                        endAdornment: <InputAdornment position="end">gms</InputAdornment>,
+                                    }}
+                                />
+                            </Grid>
+                        )}
                         <Grid item xs={12} sm={6}>
                             <TextField
                                 type="date"
@@ -310,16 +341,31 @@ const FormPage = () => {
                             <UploadBox>
                                 <HiddenInput
                                     accept="image/*"
-                                    id="image-upload"
+                                    id="image-upload-file"
                                     type="file"
                                     onChange={handleImageUpload}
                                 />
-                                <label htmlFor="image-upload">
+                                <HiddenInput
+                                    accept="image/*"
+                                    id="image-upload-camera"
+                                    type="file"
+                                    capture="environment"
+                                    onChange={handleImageUpload}
+                                />
+                                <label htmlFor="image-upload-file">
                                     <IconButton component="span" color="primary">
                                         <CloudUploadIcon />
                                     </IconButton>
                                     <Typography variant="body2">
                                         {imageFile ? imageFile.name : 'Upload Image'}
+                                    </Typography>
+                                </label>
+                                <label htmlFor="image-upload-camera">
+                                    <IconButton component="span" color="primary">
+                                        <AddAPhoto />
+                                    </IconButton>
+                                    <Typography variant="body2">
+                                        Take Photo
                                     </Typography>
                                 </label>
                             </UploadBox>
@@ -328,16 +374,31 @@ const FormPage = () => {
                             <UploadBox>
                                 <HiddenInput
                                     accept="video/*"
-                                    id="video-upload"
+                                    id="video-upload-file"
                                     type="file"
                                     onChange={handleVideoUpload}
                                 />
-                                <label htmlFor="video-upload">
+                                <HiddenInput
+                                    accept="video/*"
+                                    id="video-upload-camera"
+                                    type="file"
+                                    capture="environment"
+                                    onChange={handleVideoUpload}
+                                />
+                                <label htmlFor="video-upload-file">
                                     <IconButton component="span" color="primary">
                                         <InsertDriveFileIcon />
                                     </IconButton>
                                     <Typography variant="body2">
                                         {videoFile ? videoFile.name : 'Upload Video'}
+                                    </Typography>
+                                </label>
+                                <label htmlFor="video-upload-camera">
+                                    <IconButton component="span" color="primary">
+                                        <VideoCall />
+                                    </IconButton>
+                                    <Typography variant="body2">
+                                        Record Video
                                     </Typography>
                                 </label>
                             </UploadBox>

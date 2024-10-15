@@ -15,7 +15,7 @@ const StatBox = ({ title, value, growth, delay, icon }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (value !== undefined) {
+        if (value !== undefined && value !== null) {
             setLoading(false);
             controls.start({
                 displayValue: value,
@@ -73,7 +73,7 @@ const StatBox = ({ title, value, growth, delay, icon }) => {
                     animate={controls}
                 >
                     <Typography variant="h4" sx={{ fontWeight: 700, marginBottom: 1 }}>
-                        {title.includes('Customer') ? displayValue : `₹ ${displayValue}`}
+                        {title.includes('Customer') ? displayValue : `₹ ${displayValue.toLocaleString()}`}
                     </Typography>
                 </motion.div>
             )}
@@ -90,10 +90,28 @@ const StatBox = ({ title, value, growth, delay, icon }) => {
 
 const Statistics = () => {
     const data = useSelector((state) => state.analytics);
-    const { currentMonth, previousMonth, currentMonthLoanRepaidStats, previousMonthLoanRepaidStats } = data;
+    const [stats, setStats] = useState({
+        currentMonth: {},
+        previousMonth: {},
+        currentMonthLoanRepaidStats: {},
+        previousMonthLoanRepaidStats: {}
+    });
+
+    useEffect(() => {
+        if (data) {
+            setStats({
+                currentMonth: data.currentMonth || {},
+                previousMonth: data.previousMonth || {},
+                currentMonthLoanRepaidStats: data.currentMonth || {}, // Changed this line
+                previousMonthLoanRepaidStats: data.previousMonth || {} // Changed this line
+            });
+        }
+    }, [data]);
 
     const calculateGrowth = (current, previous) => {
-        return ((current - previous) / (previous || 1) * 100).toFixed(1);
+        const curr = Number(current) || 0;
+        const prev = Number(previous) || 1;
+        return ((curr - prev) / prev * 100).toFixed(1);
     };
 
     const currentDate = new Date();
@@ -102,9 +120,19 @@ const Statistics = () => {
         "July", "August", "September", "October", "November", "December"
     ];
     const currentMonthName = monthNames[currentDate.getMonth()];
-    const totalLoanRepaidAmountGrowth = calculateGrowth(currentMonthLoanRepaidStats.totalLoanRepaidAmount, previousMonthLoanRepaidStats.totalLoanRepaidAmount);
-    const customerCountGrowth = calculateGrowth(currentMonth.customerCount, previousMonth.customerCount);
-    const totalLoanTakenAmountGrowth = calculateGrowth(currentMonth.totalLoanTakenAmount, previousMonth.totalLoanTakenAmount);
+
+    const totalLoanRepaidAmountGrowth = calculateGrowth(
+        stats.currentMonthLoanRepaidStats.totalLoanRepaidAmount,
+        stats.previousMonthLoanRepaidStats.totalLoanRepaidAmount
+    );
+    const customerCountGrowth = calculateGrowth(
+        stats.currentMonth.customerCount,
+        stats.previousMonth.customerCount
+    );
+    const totalLoanTakenAmountGrowth = calculateGrowth(
+        stats.currentMonth.totalLoanTakenAmount,
+        stats.previousMonth.totalLoanTakenAmount
+    );
 
     return (
         <Box
@@ -118,28 +146,28 @@ const Statistics = () => {
                 overflowX: 'auto',
                 whiteSpace: 'nowrap',
                 padding: 3,
-                '&::-webkit-scrollbar': { display: 'none' }, // Hide scrollbar for webkit browsers
-                '-ms-overflow-style': 'none', // Hide scrollbar for Internet Explorer
-                'scrollbar-width': 'none', // Hide scrollbar for Firefox
+                '&::-webkit-scrollbar': { display: 'none' },
+                '-ms-overflow-style': 'none',
+                'scrollbar-width': 'none',
             }}
         >
             <StatBox
                 title={`${currentMonthName}'s Loan Issued`}
-                value={currentMonth?.totalLoanTakenAmount}
+                value={stats.currentMonth.totalLoanTakenAmount}
                 growth={totalLoanTakenAmountGrowth}
                 delay={0.2}
                 icon={<AttachMoneyIcon sx={{ fontSize: 40 }} />}
             />
             <StatBox
                 title={`${currentMonthName}'s Repaid Amount`}
-                value={currentMonthLoanRepaidStats?.totalLoanRepaidAmount}
+                value={stats.currentMonthLoanRepaidStats.totalLoanRepaidAmount}
                 growth={totalLoanRepaidAmountGrowth}
                 delay={0.4}
                 icon={<TrendingUpIcon sx={{ fontSize: 40 }} />}
             />
             <StatBox
                 title={`${currentMonthName}'s Customer Count`}
-                value={currentMonth?.customerCount}
+                value={stats.currentMonth.customerCount}
                 growth={customerCountGrowth}
                 delay={0.6}
                 icon={<GroupIcon sx={{ fontSize: 40 }} />}
@@ -149,4 +177,3 @@ const Statistics = () => {
 };
 
 export default Statistics;
-    

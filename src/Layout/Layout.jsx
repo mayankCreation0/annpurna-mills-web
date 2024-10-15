@@ -17,14 +17,14 @@ const Layout = () => {
 
   return (
     <Suspense fallback={<div><Loading /></div>}>
-      <Paper component={'section'} sx={{ bgcolor: "applicationTheme.primary", backgroundImage: "none", borderRadius: "0px", boxShadow: "none" }} className='h-screen w-full flex justify-center items-center'>
-        <Box className="h-full container flex flex-col justify-center items-center gap-2 overflow-hidden px-1 py-2 bg-transparent">
+      <Paper component={'section'} sx={{ bgcolor: "applicationTheme.primary", backgroundImage: "none", borderRadius: "0px", boxShadow: "none" }} className='h-[100vh] w-full p-0 m-0 flex justify-center items-center'>
+        <Box className="h-full container flex flex-col justify-center items-center gap-0 overflow-hidden px-1 py-2 bg-transparent">
           <Navbar />
           {/* Conditionally render GoldSilverRatesComponent */}
           {location.pathname === '/' ? <GoldSilverRatesComponent /> : null}
-          <Paper component={'div'} className="w-full flex-grow !shadow-none p-2" sx={{ bgcolor: 'applicationTheme.primary', backgroundImage: "none", padding: '0px', overflowY: overflow }}>
+          <Paper component={'div'} className="w-full flex-grow !shadow-none p-0" sx={{ bgcolor: 'applicationTheme.primary', backgroundImage: "none", padding: '0px', overflowY: overflow,mb:'5vh'}}>
             <Outlet />
-            <Box component={'div'} sx={{ display: { xs: 'block', md: 'none' }, height: "8vh", width: "100%", background: 'transparent' }} />
+            {/* <Box component={'div'} sx={{ display: { xs: 'block', md: 'none' }, height: "8vh", width: "100%", background: 'transparent' }} /> */}
           </Paper>
           <BottomNav sx={{ position: 'fixed', bottom: '0', zIndex: 100 }} />
         </Box>

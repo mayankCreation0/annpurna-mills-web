@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 
 export default function LoanAmountBarChart() {
     const [data, setData] = useState({ yearly: [], monthly: [] });
-    const [chartType, setChartType] = useState('monthly'); // 'monthly' or 'yearly'
+    const [chartType, setChartType] = useState('monthly');
 
     const loading = useSelector(state => state.loading);
     const analytics = useSelector(state => state.analytics);
@@ -35,9 +35,10 @@ export default function LoanAmountBarChart() {
     }
 
     const formatDate = (year, month) => {
-        const date = new Date(year, month - 1); // JavaScript months are 0-indexed
+        const date = new Date(year, month - 1);
         return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
     };
+
     const formatYAxisLabel = (value) => {
         if (value >= 10000000) return `₹${(value / 10000000).toFixed(1)}Cr`;
         if (value >= 100000) return `₹${(value / 100000).toFixed(1)}L`;
@@ -46,12 +47,19 @@ export default function LoanAmountBarChart() {
     };
 
     const createChartData = (data, type) => {
+        if (!Array.isArray(data)) {
+            console.error('Data is not an array:', data);
+            return [];
+        }
+
         if (type === 'yearly') {
             const currentYear = new Date().getFullYear();
             const last7Years = Array.from({ length: 7 }, (_, i) => currentYear - i).reverse();
 
             const yearlyDataMap = data.reduce((acc, item) => {
-                acc[item._id.year] = item.totalLoanRepaidAmount;
+                if (item && typeof item === 'object' && '_id' in item) {
+                    acc[item._id.year] = item.totalLoanRepaidAmount || 0;
+                }
                 return acc;
             }, {});
 
@@ -61,21 +69,25 @@ export default function LoanAmountBarChart() {
             }));
         }
 
-        // Get last 12 months for monthly data
+        // Monthly data
         const last12Months = Array.from({ length: 12 }, (_, i) => {
             const date = new Date();
             date.setMonth(date.getMonth() - i);
             return date;
         }).reverse();
 
-        const monthlyDataMap = new Map(data.map(item => [`${item.year}-${item.month}`, item.totalLoanRepaidAmount]));
+        const monthlyDataMap = new Map(data.map(item => {
+            if (item && typeof item === 'object' && 'year' in item && 'month' in item) {
+                return [`${item.year}-${item.month}`, item.totalLoanRepaidAmount || 0];
+            }
+            return null;
+        }).filter(Boolean));
 
         return last12Months.map(date => ({
-            time: formatDate(date.getFullYear(), date.getMonth() + 1), // Format as MMM-YY
+            time: formatDate(date.getFullYear(), date.getMonth() + 1),
             amount: monthlyDataMap.get(`${date.getFullYear()}-${date.getMonth() + 1}`) || 0,
         }));
     };
-
 
     const chartData = createChartData(data[chartType], chartType);
 
@@ -139,7 +151,7 @@ export default function LoanAmountBarChart() {
                                 ...theme.typography.body2,
                                 transform: 'rotate(-45deg)',
                                 textAnchor: 'end',
-                                fontSize: '0.7rem' 
+                                fontSize: '0.7rem'
                             },
                             ticks: isSmallScreen ? chartData.filter((_, index) => index % 2 === 0) : chartData
                         }
@@ -150,9 +162,10 @@ export default function LoanAmountBarChart() {
                     series={[
                         {
                             dataKey: 'amount',
-                            color: theme.palette.primary.main, valueFormatter: (value) => `₹${value.toLocaleString()}`,
+                            color: theme.palette.primary.main,
+                            valueFormatter: (value) => `₹${value.toLocaleString()}`,
                             highlightScope: { faded: 'global', highlighted: 'item' },
-                            TooltipComponent: ({ x, y, dataPoint }) => (
+                            TooltipComponent: ({ dataPoint }) => (
                                 <Box sx={{
                                     background: theme.palette.background.paper,
                                     borderRadius: '4px',
@@ -161,7 +174,7 @@ export default function LoanAmountBarChart() {
                                     fontSize: '0.75rem',
                                     color: theme.palette.text.primary
                                 }}>
-                                    <Typography variant="body2"><strong></strong></Typography>
+                                    <Typography variant="body2"><strong>{dataPoint.time}</strong></Typography>
                                     <Typography variant="body2">Loan Repaid: ₹{dataPoint.amount.toLocaleString()}</Typography>
                                 </Box>
                             )
